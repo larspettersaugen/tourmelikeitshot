@@ -37,6 +37,14 @@ From your machine (with network access to Neon):
 DATABASE_URL="postgresql://…" npx prisma db seed
 ```
 
+If you use `.env.local` from `vercel env pull`, you can run:
+
+```bash
+DATABASE_URL=$(grep '^DATABASE_URL=' .env.local | cut -d= -f2- | tr -d '"') npx prisma db seed
+```
+
+The seed restores sample **artists** (Chris Holsten, Astrid S, Demo Artist), **tours**, **show dates**, and **people**. It is idempotent (safe to run again; it won’t duplicate tours/dates that already exist). It does **not** recover data from an old SQLite `dev.db`—only what’s in the seed script.
+
 ## 5. Google sign-in (if you use it)
 
 In [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → your OAuth client → **Authorized redirect URIs**, add:
