@@ -4,3 +4,8 @@ node_modules
 uploads
 prisma/dev.db
 prisma/dev.db-journal
+
+# Next.js — never commit; tracked .next breaks dev (missing CSS / wrong chunks)
+.next/
+out/
+.vercel

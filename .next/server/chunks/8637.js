@@ -1,1 +1,0 @@
-"use strict";exports.id=8637,exports.ids=[8637],exports.modules={98637:(r,e,s)=>{s.r(e),s.d(e,{TourDatesSidebar:()=>t});let t=(0,s(68570).createProxy)(String.raw`/Users/larspettersaugen/touring-crew-app/src/components/TourDatesSidebar.tsx#TourDatesSidebar`)}};
