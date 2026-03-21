@@ -55,6 +55,14 @@ Files for tour “advance” sections are stored under `./uploads` on disk. Verc
 
 ## Local development
 
+**No local Postgres:** link the folder to Vercel and pull only the DB URL into `.env.local` (ignored by Git). Next.js loads `.env.local` over `.env`, so you use Neon while `NEXTAUTH_URL` can stay `http://localhost:3000` in `.env`:
+
+```bash
+npx vercel link --project YOUR_VERCEL_PROJECT_NAME --yes
+npx vercel env pull .env.local --yes
+# Edit .env.local: keep only DATABASE_URL (remove NEXTAUTH_* so .env controls local auth).
+```
+
 Use PostgreSQL locally (same schema as production), for example:
 
 ```bash
