@@ -19,6 +19,7 @@
     "db:clear-people": "node prisma/clear-people.cjs",
     "db:assign-marius-pm": "node prisma/assign-marius-productionmanager.cjs",
     "db:migrate-projects": "node prisma/migrate-to-projects.cjs",
+    "db:import-sqlite": "tsx scripts/import-sqlite-to-neon.ts",
     "postinstall": "prisma generate",
     "prepare": "husky"
   },
@@ -39,10 +40,12 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "autoprefixer": "^10.4.20",
+    "better-sqlite3": "^12.8.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.18",
     "husky": "^9.1.7",

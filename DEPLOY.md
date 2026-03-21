@@ -29,21 +29,23 @@ Vercel imports from Git. Commit and push this repository (including `prisma/migr
 
 4. After the first successful deploy, confirm **`NEXTAUTH_URL`** exactly matches the site URL (scheme + host, no trailing slash). Redeploy if you change it.
 
-## 4. Optional: demo data
+## 4. Data: restore from SQLite or dev logins
 
-From your machine (with network access to Neon):
+**`prisma db seed`** only ensures `admin@tour.local` / `editor@tour.local` / `viewer@tour.local` exist with the documented passwords. It does **not** add tours or people.
+
+To **replace everything in Neon** with a copy of your old **`prisma/dev.db`** (from before PostgreSQL):
 
 ```bash
-DATABASE_URL="postgresql://…" npx prisma db seed
+npm run db:import-sqlite
 ```
 
-If you use `.env.local` from `vercel env pull`, you can run:
+(`DATABASE_URL` is read from `.env.local` or `.env`.) This **wipes** all app tables in PostgreSQL, then imports users, people, projects, tours, dates, flights, etc. Keep a backup of `dev.db` in a safe place.
+
+If you use `.env.local` from `vercel env pull` but run seed manually:
 
 ```bash
 DATABASE_URL=$(grep '^DATABASE_URL=' .env.local | cut -d= -f2- | tr -d '"') npx prisma db seed
 ```
-
-The seed restores sample **artists** (Chris Holsten, Astrid S, Demo Artist), **tours**, **show dates**, and **people**. It is idempotent (safe to run again; it won’t duplicate tours/dates that already exist). It does **not** recover data from an old SQLite `dev.db`—only what’s in the seed script.
 
 ## 5. Google sign-in (if you use it)
 

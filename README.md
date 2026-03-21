@@ -32,6 +32,8 @@ Web app for tour managers and booking agents to manage tour data (schedules, fli
    npx prisma db seed
    ```
 
+   `db seed` only creates the three dev login accounts. To load a full dataset from an old **`prisma/dev.db`** into PostgreSQL (replaces all data in `DATABASE_URL`), run **`npm run db:import-sqlite`** (see `DEPLOY.md`).
+
 4. **Run**
 
    ```bash
