@@ -3,10 +3,10 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'Hernes Touring',
+  title: 'Tour It Like Its Hot',
   description: 'Schedules, flights, transport and contacts for touring crew and bands',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Hernes Touring' },
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Tour It Like Its Hot' },
 };
 
 export const viewport: Viewport = {

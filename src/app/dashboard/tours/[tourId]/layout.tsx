@@ -22,13 +22,13 @@ export default async function TourLayout({
   const extendedAccess = hasExtendedAccess(role);
   if (!extendedAccess && session?.user?.id) {
     const viewerTourIds = await getViewerAssignedTourIds(session.user.id);
-    if (!viewerTourIds.includes(tourId)) redirect('/dashboard/projects');
+    if (!viewerTourIds.includes(tourId)) redirect('/dashboard/tours');
   }
   const tour = await prisma.tour.findUnique({
     where: { id: tourId },
     include: { dates: { orderBy: { date: 'asc' } } },
   });
-  if (!tour) redirect('/dashboard');
+  if (!tour) redirect('/dashboard/tours');
 
   const dates = tour.dates.map((d) => ({
     id: d.id,

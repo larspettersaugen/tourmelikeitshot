@@ -14,10 +14,16 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const fromInvite = searchParams.get('fromInvite') === '1';
 
   useEffect(() => {
     getProviders().then((providers) => setHasGoogle(!!providers?.google));
   }, []);
+
+  useEffect(() => {
+    const prefill = searchParams.get('email');
+    if (prefill?.trim()) setEmail(prefill.trim());
+  }, [searchParams]);
 
   async function handleGoogleSignIn() {
     setError('');
@@ -51,8 +57,13 @@ function LoginForm() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-4 bg-stage-dark">
       <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-center mb-2 text-white">Hernes Touring</h1>
+        <h1 className="text-2xl font-bold text-center mb-2 text-white">Tour It Like Its Hot</h1>
         <p className="text-stage-muted text-center text-sm mb-8">Sign in to view your tour</p>
+        {fromInvite && (
+          <p className="text-sm text-zinc-400 text-center mb-6 -mt-4">
+            You already have a profile—sign in with your existing password.
+          </p>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-zinc-300 mb-1">
@@ -131,7 +142,7 @@ export default function LoginPage() {
     <Suspense fallback={
       <main className="min-h-screen flex flex-col items-center justify-center p-4 bg-stage-dark">
         <div className="w-full max-w-sm">
-          <h1 className="text-2xl font-bold text-center mb-2 text-white">Hernes Touring</h1>
+          <h1 className="text-2xl font-bold text-center mb-2 text-white">Tour It Like Its Hot</h1>
           <p className="text-stage-muted text-center">Loading…</p>
         </div>
       </main>

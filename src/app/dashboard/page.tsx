@@ -26,35 +26,34 @@ export default async function DashboardPage() {
       }
     : { id: { in: viewerTourIds ?? [] } };
 
-  const [allProjects, tours, upcomingDates] = await Promise.all([
-    prisma.project.findMany({
-      orderBy: { updatedAt: 'desc' },
-      include: { _count: { select: { tours: true } }, tours: { select: { id: true } } },
-    }),
-    prisma.tour.findMany({
-      where: tourWhere,
-      orderBy: [{ startDate: 'asc' }, { updatedAt: 'desc' }],
-      include: {
-        project: { select: { id: true, name: true } },
-        dates: {
-          where: { date: { gte: now } },
-          orderBy: { date: 'asc' },
-          take: 1,
-        },
-        _count: { select: { dates: true } },
+  // Sequential queries avoid grabbing multiple pool connections at once (helps Neon + dev HMR).
+  const allProjects = await prisma.project.findMany({
+    orderBy: { updatedAt: 'desc' },
+    include: { _count: { select: { tours: true } }, tours: { select: { id: true } } },
+  });
+  const tours = await prisma.tour.findMany({
+    where: tourWhere,
+    orderBy: [{ startDate: 'asc' }, { updatedAt: 'desc' }],
+    include: {
+      project: { select: { id: true, name: true } },
+      dates: {
+        where: { date: { gte: now } },
+        orderBy: { date: 'asc' },
+        take: 1,
       },
-    }),
-    prisma.tourDate.findMany({
-      where: { date: { gte: new Date() }, tourId: extendedAccess ? undefined : { in: viewerTourIds ?? [] } },
-      orderBy: { date: 'asc' },
-      take: 7,
-      include: {
-        tour: {
-          select: { id: true, name: true, project: { select: { id: true, name: true } } },
-        },
+      _count: { select: { dates: true } },
+    },
+  });
+  const upcomingDates = await prisma.tourDate.findMany({
+    where: { date: { gte: new Date() }, tourId: extendedAccess ? undefined : { in: viewerTourIds ?? [] } },
+    orderBy: { date: 'asc' },
+    take: 7,
+    include: {
+      tour: {
+        select: { id: true, name: true, project: { select: { id: true, name: true } } },
       },
-    }),
-  ]);
+    },
+  });
 
   const projects = extendedAccess
     ? allProjects
@@ -64,11 +63,11 @@ export default async function DashboardPage() {
     <div className="w-full max-w-6xl mx-auto p-6 lg:p-8 pb-8">
       <h1 className="text-xl font-bold text-white mb-6">Dashboard</h1>
 
-      {/* Projects */}
+      {/* Artists (projects) */}
       {projects.length > 0 && (
         <section className="mb-8">
           <h2 className="text-sm font-semibold text-zinc-400 flex items-center gap-2 mb-3">
-            <FolderOpen className="h-4 w-4" /> Projects
+            <FolderOpen className="h-4 w-4" /> Artists
           </h2>
           <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {projects.map((project) => (

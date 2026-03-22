@@ -34,11 +34,31 @@ export default async function PeoplePage({
       timezone: true,
       notes: true,
       userId: true,
+      user: { select: { role: true } },
+      invites: {
+        where: { usedAt: null },
+        select: { id: true },
+        take: 1,
+      },
     },
   });
   const people = peopleRaw.map((p) => ({
-    ...p,
+    id: p.id,
+    name: p.name,
+    type: p.type,
     birthdate: p.birthdate?.toISOString() ?? null,
+    phone: p.phone,
+    email: p.email,
+    streetName: p.streetName,
+    zipCode: p.zipCode,
+    county: p.county,
+    timezone: p.timezone,
+    notes: p.notes,
+    userId: p.userId,
+    isPowerUser: p.user
+      ? p.user.role === 'power_user' || p.user.role === 'editor' || p.user.role === 'admin'
+      : false,
+    hasPendingInvite: p.invites.length > 0,
   }));
 
   const allowEdit = canEdit((session.user as { role?: string }).role);

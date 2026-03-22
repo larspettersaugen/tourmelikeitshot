@@ -18,6 +18,8 @@ type Person = {
   timezone: string | null;
   notes: string | null;
   userId: string | null;
+  isPowerUser?: boolean;
+  hasPendingInvite?: boolean;
 };
 
 export function PeoplePageTabs({

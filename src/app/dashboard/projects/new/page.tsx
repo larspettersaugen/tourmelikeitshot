@@ -32,7 +32,7 @@ export default function NewProjectPage() {
         href="/dashboard/projects"
         className="inline-flex items-center gap-2 text-stage-muted hover:text-white mb-6"
       >
-        <ArrowLeft className="h-4 w-4" /> Projects
+        <ArrowLeft className="h-4 w-4" /> Artists
       </Link>
       <h1 className="text-xl font-bold text-white mb-6">New project</h1>
       <p className="text-stage-muted text-sm mb-6">

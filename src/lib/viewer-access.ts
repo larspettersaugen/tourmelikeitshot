@@ -10,13 +10,8 @@ export function hasExtendedAccess(role: string | undefined): boolean {
  * Viewers are assigned to tours via TravelGroupMember (their Person is on the tour).
  */
 export async function getViewerAssignedTourIds(userId: string): Promise<string[]> {
-  const person = await prisma.person.findFirst({
-    where: { userId },
-    select: { id: true },
-  });
-  if (!person) return [];
   const members = await prisma.travelGroupMember.findMany({
-    where: { personId: person.id },
+    where: { person: { userId } },
     select: { tourId: true },
   });
   return members.map((m) => m.tourId);

@@ -33,6 +33,11 @@ export async function GET(req: Request) {
       notes: true,
       userId: true,
       user: { select: { role: true } },
+      invites: {
+        where: { usedAt: null },
+        select: { id: true },
+        take: 1,
+      },
     },
   });
   return NextResponse.json(
@@ -50,6 +55,7 @@ export async function GET(req: Request) {
       notes: p.notes,
       userId: p.userId,
       isPowerUser: p.user ? (p.user.role === 'power_user' || p.user.role === 'editor' || p.user.role === 'admin') : false,
+      hasPendingInvite: p.invites.length > 0,
     }))
   );
 }

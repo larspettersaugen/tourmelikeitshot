@@ -130,6 +130,8 @@ export default async function AdvancePage({
           name: m.name,
           role: m.role,
           subgroup: m.subgroup,
+          phone: m.phone,
+          email: m.email,
         }))}
         hideAllTourMessage={(session.user as { role?: string }).role === 'viewer'}
       />

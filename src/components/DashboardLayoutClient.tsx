@@ -3,14 +3,15 @@
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
-import { Calendar, LogOut, Menu, Users, UserCircle, LayoutDashboard, FolderOpen, Contact, PanelLeftClose, PanelLeftOpen, FileStack } from 'lucide-react';
+import { Calendar, LogOut, Menu, Users, UserCircle, LayoutDashboard, FolderOpen, Contact, PanelLeftClose, PanelLeftOpen, FileStack, MapPin } from 'lucide-react';
 import { useState } from 'react';
 import type { User } from 'next-auth';
 import { useTourDatesSidebar } from '@/contexts/TourDatesSidebarContext';
 
 const allNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/projects', label: 'Projects', icon: FolderOpen },
+  { href: '/dashboard/projects', label: 'Artists', icon: FolderOpen },
+  { href: '/dashboard/tours', label: 'Tours', icon: MapPin },
   { href: '/dashboard/people', label: 'People', icon: Users },
   { href: '/dashboard/contacts', label: 'Contacts', icon: Contact },
   { href: '/dashboard/templates', label: 'Templates', icon: FileStack },
@@ -22,7 +23,9 @@ export function DashboardLayoutClient({ user, children }: { user: User; children
   const pathname = usePathname();
   const role = (user as { role?: string }).role;
   const navItems = role === 'viewer'
-    ? allNavItems.filter((n) => n.href === '/dashboard' || n.href === '/dashboard/projects')
+    ? allNavItems.filter((n) =>
+        n.href === '/dashboard' || n.href === '/dashboard/projects' || n.href === '/dashboard/tours'
+      )
     : allNavItems;
   const isTourPage = /^\/dashboard\/tours\/[^/]+(\/|$)/.test(pathname);
   const tourDatesSidebar = useTourDatesSidebar();
@@ -33,7 +36,7 @@ export function DashboardLayoutClient({ user, children }: { user: User; children
       <div className={`shrink-0 border-b border-stage-border flex items-center ${sidebarCollapsed ? 'p-3 justify-center' : 'p-4'}`}>
         <Link href="/dashboard" className={`flex items-center text-white font-semibold ${sidebarCollapsed ? 'justify-center' : 'gap-2'}`}>
           <Calendar className="h-6 w-6 shrink-0 text-stage-accent" />
-          {!sidebarCollapsed && <span className="truncate">Hernes Touring</span>}
+          {!sidebarCollapsed && <span className="truncate">Tour It Like Its Hot</span>}
         </Link>
       </div>
       <nav className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 ${sidebarCollapsed ? 'p-2 items-center' : 'p-3'}`}>
@@ -115,7 +118,7 @@ export function DashboardLayoutClient({ user, children }: { user: User; children
         <header className="flex lg:hidden shrink-0 flex-row items-center justify-between h-14 px-4 border-b border-stage-border bg-stage-dark min-h-[3.5rem]">
           <Link href="/dashboard" className="flex items-center gap-2 text-white font-semibold">
             <Calendar className="h-6 w-6 shrink-0 text-stage-accent" />
-            <span>Hernes Touring</span>
+            <span>Tour It Like Its Hot</span>
           </Link>
           <div className="relative">
             <button

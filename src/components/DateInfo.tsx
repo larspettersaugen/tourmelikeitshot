@@ -1,6 +1,6 @@
 'use client';
 
-import { MapPin, Pencil, Calendar, User, Phone, Mail, Plus, UserPlus, PenLine } from 'lucide-react';
+import { MapPin, Pencil, Calendar, User, Phone, Mail, Plus, UserPlus, PenLine, ChevronRight, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -60,7 +60,7 @@ export function DateInfo({
   allowEdit: boolean;
   extraActions?: React.ReactNode;
   contacts?: Contact[];
-  travelingGroup: { id: string; name: string; role: string; subgroup: string | null }[];
+  travelingGroup: { id: string; name: string; role: string; subgroup: string | null; phone?: string | null; email?: string | null }[];
   hideAllTourMessage?: boolean;
 }) {
   const router = useRouter();
@@ -85,6 +85,8 @@ export function DateInfo({
   const [vPromoterName, setVPromoterName] = useState(promoterName ?? '');
   const [vPromoterPhone, setVPromoterPhone] = useState(promoterPhone ?? '');
   const [vPromoterEmail, setVPromoterEmail] = useState(promoterEmail ?? '');
+  /** People, contacts, promoter — collapsed by default */
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
 
   const displayName = `${venueName}, ${city}`;
   const locationQuery = address?.trim() ? address : `${venueName}, ${city}`;
@@ -391,157 +393,191 @@ export function DateInfo({
           ? `${format(new Date(date), 'EEEE, MMMM d, yyyy')} – ${format(new Date(endDate), 'EEEE, MMMM d, yyyy')}`
           : format(new Date(date), 'EEEE, MMMM d, yyyy')}
       </p>
-      <a
-        href={mapsUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 mt-2 text-sm text-stage-accent hover:underline"
-      >
-        <MapPin className="h-4 w-4" />
-        View on Google Maps
-      </a>
-
-      <div className="mt-5 pt-4 border-t border-stage-border">
-        <div className="rounded-lg border border-stage-border bg-stage-dark/50 px-3 py-2.5 mb-1">
-          <DateMembersSection
-            tourId={tourId}
-            dateId={dateId}
-            travelingGroup={travelingGroup}
-            allowEdit={allowEdit}
-            hideAllTourMessage={hideAllTourMessage}
-            embedded
-          />
-        </div>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2">
+        <a
+          href={mapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-sm text-stage-accent hover:underline w-fit"
+        >
+          <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+          View on Google Maps
+        </a>
+        <button
+          type="button"
+          onClick={() => setDetailsExpanded((o) => !o)}
+          className="inline-flex items-center gap-1.5 text-sm text-stage-muted hover:text-zinc-200 rounded-lg py-1 -mx-1 px-1 sm:px-2 sm:-mx-2 text-left transition-colors"
+          aria-expanded={detailsExpanded}
+          aria-controls="date-day-details"
+          id="date-day-details-toggle"
+          title={
+            detailsExpanded
+              ? 'Hide people, contacts, and promoter'
+              : 'Show people, contacts, and promoter'
+          }
+          aria-label={
+            detailsExpanded
+              ? 'Collapse: people, contacts, and promoter'
+              : 'Expand: people, contacts, and promoter'
+          }
+        >
+          {detailsExpanded ? (
+            <ChevronDown className="h-4 w-4 shrink-0" aria-hidden />
+          ) : (
+            <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
+          )}
+          <span>{detailsExpanded ? 'Less' : 'More'}</span>
+        </button>
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <div className="min-w-0">
-          <ContactsSection
-            tourId={tourId}
-            dateId={dateId}
-            items={contacts ?? []}
-            allowEdit={allowEdit}
-            compact
-            embedded
-          />
-        </div>
-        <div>
-          <p className="text-xs font-medium text-zinc-400 mb-2 flex items-center gap-1.5">
-            <User className="h-3 w-3" /> Promoter
-          </p>
-          <div className="rounded-lg bg-stage-card/50 border border-stage-border/50 overflow-hidden">
-            {(promoterName || promoterPhone || promoterEmail) ? (
-              <div className="px-3 py-2">
-                <p className="text-sm font-medium text-white">{promoterName || '—'}</p>
-                {(promoterPhone || promoterEmail) && (
-                  <div className="flex flex-wrap gap-2 mt-0.5">
-                    {promoterPhone && (
-                      <a href={`tel:${promoterPhone}`} className="flex items-center gap-1 text-xs text-stage-accent hover:underline">
-                        <Phone className="h-3 w-3 shrink-0" /> {promoterPhone}
-                      </a>
-                    )}
-                    {promoterEmail && (
-                      <a href={`mailto:${promoterEmail}`} className="flex items-center gap-1 text-xs text-stage-accent hover:underline truncate">
-                        <Mail className="h-3 w-3 shrink-0" /> {promoterEmail}
-                      </a>
+      {detailsExpanded ? (
+        <div
+          id="date-day-details"
+          className="mt-5 pt-4 border-t border-stage-border"
+          role="region"
+          aria-labelledby="date-day-details-toggle"
+        >
+          <div className="rounded-lg border border-stage-border bg-stage-dark/50 px-3 py-2.5 mb-1">
+            <DateMembersSection
+              tourId={tourId}
+              dateId={dateId}
+              travelingGroup={travelingGroup}
+              allowEdit={allowEdit}
+              hideAllTourMessage={hideAllTourMessage}
+              embedded
+            />
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="min-w-0">
+              <ContactsSection
+                tourId={tourId}
+                dateId={dateId}
+                items={contacts ?? []}
+                allowEdit={allowEdit}
+                compact
+                embedded
+              />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-zinc-400 mb-2 flex items-center gap-1.5">
+                <User className="h-3 w-3" /> Promoter
+              </p>
+              <div className="rounded-lg bg-stage-card/50 border border-stage-border/50 overflow-hidden">
+                {(promoterName || promoterPhone || promoterEmail) ? (
+                  <div className="px-3 py-2">
+                    <p className="text-sm font-medium text-white">{promoterName || '—'}</p>
+                    {(promoterPhone || promoterEmail) && (
+                      <div className="flex flex-wrap gap-2 mt-0.5">
+                        {promoterPhone && (
+                          <a href={`tel:${promoterPhone}`} className="flex items-center gap-1 text-xs text-stage-accent hover:underline">
+                            <Phone className="h-3 w-3 shrink-0" /> {promoterPhone}
+                          </a>
+                        )}
+                        {promoterEmail && (
+                          <a href={`mailto:${promoterEmail}`} className="flex items-center gap-1 text-xs text-stage-accent hover:underline truncate">
+                            <Mail className="h-3 w-3 shrink-0" /> {promoterEmail}
+                          </a>
+                        )}
+                      </div>
                     )}
                   </div>
+                ) : !addingPromoter ? (
+                  <div className="px-3 py-2 text-center text-stage-muted text-xs">No promoter</div>
+                ) : null}
+                {addingPromoter && promoterAddPhase === 'picker' && (
+                  <div>
+                    {promoterError && (
+                      <p className="px-3 py-2 text-xs text-red-400 border-t border-stage-border/50">{promoterError}</p>
+                    )}
+                    <VenueContactPicker
+                      variant="promoter"
+                      onSelect={handlePromoterPickerSelect}
+                      onCancel={closePromoterAdd}
+                    />
+                    <div className="px-3 pb-3 pt-1 border-t border-stage-border/50">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPromoterError('');
+                          setPromoterAddPhase('manual');
+                          resetPromoterManualFields();
+                        }}
+                        disabled={promoterLoading}
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs rounded-lg border border-stage-border text-stage-muted hover:text-white hover:border-stage-muted disabled:opacity-50"
+                      >
+                        <PenLine className="h-3 w-3" /> Enter new promoter manually
+                      </button>
+                    </div>
+                  </div>
                 )}
-              </div>
-            ) : !addingPromoter ? (
-              <div className="px-3 py-2 text-center text-stage-muted text-xs">No promoter</div>
-            ) : null}
-            {addingPromoter && promoterAddPhase === 'picker' && (
-              <div>
-                {promoterError && (
-                  <p className="px-3 py-2 text-xs text-red-400 border-t border-stage-border/50">{promoterError}</p>
+                {addingPromoter && promoterAddPhase === 'manual' && (
+                  <form onSubmit={handlePromoterManualSubmit} className="p-3 border-t border-stage-border/50 space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPromoterError('');
+                        setPromoterAddPhase('picker');
+                      }}
+                      className="text-xs text-stage-accent hover:underline flex items-center gap-1"
+                    >
+                      <UserPlus className="h-3 w-3" /> Choose from venue contacts instead
+                    </button>
+                    <input
+                      type="text"
+                      value={newPromoterName}
+                      onChange={(e) => setNewPromoterName(e.target.value)}
+                      required
+                      placeholder="Promoter name"
+                      className="w-full px-2 py-1.5 text-sm rounded bg-stage-dark border border-stage-border text-white placeholder-zinc-500"
+                    />
+                    <input
+                      type="tel"
+                      value={newPromoterPhone}
+                      onChange={(e) => setNewPromoterPhone(e.target.value)}
+                      placeholder="Phone"
+                      className="w-full px-2 py-1.5 text-sm rounded bg-stage-dark border border-stage-border text-white placeholder-zinc-500"
+                    />
+                    <input
+                      type="email"
+                      value={newPromoterEmail}
+                      onChange={(e) => setNewPromoterEmail(e.target.value)}
+                      placeholder="Email"
+                      className="w-full px-2 py-1.5 text-sm rounded bg-stage-dark border border-stage-border text-white placeholder-zinc-500"
+                    />
+                    {promoterError && <p className="text-red-400 text-xs">{promoterError}</p>}
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="submit"
+                        disabled={promoterLoading}
+                        className="px-3 py-1.5 text-sm rounded bg-stage-accent text-stage-dark font-medium disabled:opacity-50"
+                      >
+                        Save promoter
+                      </button>
+                      <button
+                        type="button"
+                        onClick={closePromoterAdd}
+                        className="px-3 py-1.5 text-sm rounded border border-stage-border text-stage-muted"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
                 )}
-                <VenueContactPicker
-                  variant="promoter"
-                  onSelect={handlePromoterPickerSelect}
-                  onCancel={closePromoterAdd}
-                />
-                <div className="px-3 pb-3 pt-1 border-t border-stage-border/50">
+                {allowEdit && !addingPromoter && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setPromoterError('');
-                      setPromoterAddPhase('manual');
-                      resetPromoterManualFields();
-                    }}
-                    disabled={promoterLoading}
-                    className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs rounded-lg border border-stage-border text-stage-muted hover:text-white hover:border-stage-muted disabled:opacity-50"
+                    onClick={openPromoterAdd}
+                    className="w-full px-3 py-2 flex items-center justify-center gap-1.5 text-stage-muted hover:text-stage-accent border-t border-stage-border/50 text-xs"
                   >
-                    <PenLine className="h-3 w-3" /> Enter new promoter manually
+                    <Plus className="h-3 w-3" /> Add promoter
                   </button>
-                </div>
+                )}
               </div>
-            )}
-            {addingPromoter && promoterAddPhase === 'manual' && (
-              <form onSubmit={handlePromoterManualSubmit} className="p-3 border-t border-stage-border/50 space-y-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPromoterError('');
-                    setPromoterAddPhase('picker');
-                  }}
-                  className="text-xs text-stage-accent hover:underline flex items-center gap-1"
-                >
-                  <UserPlus className="h-3 w-3" /> Choose from venue contacts instead
-                </button>
-                <input
-                  type="text"
-                  value={newPromoterName}
-                  onChange={(e) => setNewPromoterName(e.target.value)}
-                  required
-                  placeholder="Promoter name"
-                  className="w-full px-2 py-1.5 text-sm rounded bg-stage-dark border border-stage-border text-white placeholder-zinc-500"
-                />
-                <input
-                  type="tel"
-                  value={newPromoterPhone}
-                  onChange={(e) => setNewPromoterPhone(e.target.value)}
-                  placeholder="Phone"
-                  className="w-full px-2 py-1.5 text-sm rounded bg-stage-dark border border-stage-border text-white placeholder-zinc-500"
-                />
-                <input
-                  type="email"
-                  value={newPromoterEmail}
-                  onChange={(e) => setNewPromoterEmail(e.target.value)}
-                  placeholder="Email"
-                  className="w-full px-2 py-1.5 text-sm rounded bg-stage-dark border border-stage-border text-white placeholder-zinc-500"
-                />
-                {promoterError && <p className="text-red-400 text-xs">{promoterError}</p>}
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    type="submit"
-                    disabled={promoterLoading}
-                    className="px-3 py-1.5 text-sm rounded bg-stage-accent text-stage-dark font-medium disabled:opacity-50"
-                  >
-                    Save promoter
-                  </button>
-                  <button
-                    type="button"
-                    onClick={closePromoterAdd}
-                    className="px-3 py-1.5 text-sm rounded border border-stage-border text-stage-muted"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            )}
-            {allowEdit && !addingPromoter && (
-              <button
-                type="button"
-                onClick={openPromoterAdd}
-                className="w-full px-3 py-2 flex items-center justify-center gap-1.5 text-stage-muted hover:text-stage-accent border-t border-stage-border/50 text-xs"
-              >
-                <Plus className="h-3 w-3" /> Add promoter
-              </button>
-            )}
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

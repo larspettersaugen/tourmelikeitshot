@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, Pencil, Phone, Mail, MapPin, Search, Filter, Send, Copy, Check, Cake, UserPlus } from 'lucide-react';
+import { Plus, Pencil, Phone, Mail, MapPin, Search, Filter, Send, Copy, Check, Cake, UserPlus, Ban } from 'lucide-react';
 import { format } from 'date-fns';
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
@@ -19,6 +19,7 @@ type Person = {
   notes: string | null;
   userId: string | null;
   isPowerUser?: boolean;
+  hasPendingInvite?: boolean;
 };
 
 const NORWEGIAN_COUNTIES = [
@@ -129,7 +130,7 @@ export function PeopleContent({
       const list = await api.people.list();
       setPeople(list);
       if (result.inviteUrl) {
-        setInviteResult({ inviteUrl: result.inviteUrl }); // add flow – no personId
+        setInviteResult({ inviteUrl: result.inviteUrl, personId: result.id });
       }
       if (!result.inviteUrl) {
         resetForm();
@@ -173,6 +174,22 @@ export function PeopleContent({
       setPeople(list);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create invite');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRevokeInvite(personId: string) {
+    if (!confirm('Revoke all outstanding invite links for this person? They will need a new invite.')) return;
+    setError('');
+    setLoading(true);
+    try {
+      await api.people.revokeInvite(personId);
+      setInviteResult((prev) => (prev?.personId === personId ? null : prev));
+      const list = await api.people.list();
+      setPeople(list);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to revoke invite');
     } finally {
       setLoading(false);
     }
@@ -375,20 +392,32 @@ export function PeopleContent({
                   </button>
                   {phone && (
                     <a
-                      href={`sms:${phone}?body=${encodeURIComponent(`You're invited to ${process.env.NEXT_PUBLIC_APP_NAME || 'Hernes Touring'}. Set up your account: ${inviteResult.inviteUrl}`)}`}
+                      href={`sms:${phone}?body=${encodeURIComponent(`You're invited to ${process.env.NEXT_PUBLIC_APP_NAME || 'Tour It Like Its Hot'}. Set up your account: ${inviteResult.inviteUrl}`)}`}
                       className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-stage-card border border-stage-border text-stage-muted hover:text-white text-sm"
                     >
                       <Send className="h-4 w-4" /> Send via SMS
                     </a>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="text-sm text-stage-accent hover:underline"
-                >
-                  Done
-                </button>
+                <div className="flex flex-wrap gap-3 items-center">
+                  {inviteResult.personId && (
+                    <button
+                      type="button"
+                      onClick={() => handleRevokeInvite(inviteResult.personId!)}
+                      disabled={loading}
+                      className="text-sm text-amber-400 hover:underline disabled:opacity-50"
+                    >
+                      Revoke link
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="text-sm text-stage-accent hover:underline"
+                  >
+                    Done
+                  </button>
+                </div>
               </div>
             )}
             {error && <p className="text-red-400 text-sm">{error}</p>}
@@ -564,6 +593,18 @@ export function PeopleContent({
                     </div>
                     {allowEdit && (
                       <div className="flex items-center gap-1">
+                        {p.hasPendingInvite && (
+                          <button
+                            type="button"
+                            onClick={() => handleRevokeInvite(p.id)}
+                            disabled={loading}
+                            className="p-1.5 rounded text-stage-muted hover:text-amber-400 hover:bg-stage-dark disabled:opacity-50"
+                            aria-label="Revoke invite links"
+                            title="Revoke outstanding invite links"
+                          >
+                            <Ban className="h-4 w-4" />
+                          </button>
+                        )}
                         {p.email?.trim() && (
                           <button
                             type="button"
@@ -604,20 +645,30 @@ export function PeopleContent({
                         </button>
                         {p.phone && (
                           <a
-                            href={`sms:${p.phone}?body=${encodeURIComponent(`You're invited to ${process.env.NEXT_PUBLIC_APP_NAME || 'Hernes Touring'}. Set up your account: ${inviteResult.inviteUrl}`)}`}
+                            href={`sms:${p.phone}?body=${encodeURIComponent(`You're invited to ${process.env.NEXT_PUBLIC_APP_NAME || 'Tour It Like Its Hot'}. Set up your account: ${inviteResult.inviteUrl}`)}`}
                             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-stage-card border border-stage-border text-stage-muted hover:text-white text-sm"
                           >
                             <Send className="h-4 w-4" /> Send via SMS
                           </a>
                         )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setInviteResult(null)}
-                        className="text-sm text-stage-accent hover:underline"
-                      >
-                        Done
-                      </button>
+                      <div className="flex flex-wrap gap-3 items-center">
+                        <button
+                          type="button"
+                          onClick={() => inviteResult.personId && handleRevokeInvite(inviteResult.personId)}
+                          disabled={loading || !inviteResult.personId}
+                          className="text-sm text-amber-400 hover:underline disabled:opacity-50"
+                        >
+                          Revoke link
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setInviteResult(null)}
+                          className="text-sm text-stage-accent hover:underline"
+                        >
+                          Done
+                        </button>
+                      </div>
                     </div>
                   )}
                   </>

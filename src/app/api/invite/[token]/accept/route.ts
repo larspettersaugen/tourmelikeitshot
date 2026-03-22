@@ -24,6 +24,13 @@ export async function POST(
   const person = invite.person;
   if (!person.userId) return NextResponse.json({ error: 'No linked user account' }, { status: 400 });
 
+  if (person.user?.password != null && String(person.user.password).length > 0) {
+    return NextResponse.json(
+      { error: 'This account already has a password. Sign in on the login page.' },
+      { status: 400 }
+    );
+  }
+
   const hashed = await hash(password, 12);
   await prisma.$transaction([
     prisma.user.update({

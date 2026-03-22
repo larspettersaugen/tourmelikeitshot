@@ -20,6 +20,17 @@ let clearNext = !nextExists || !nextServerExists;
 if (!clearNext && schemaExists) {
   clearNext = fs.statSync(schemaPath).mtimeMs > fs.statSync(nextServerDir).mtimeMs;
 }
+// Stale .next often causes "no CSS" in dev (wrong chunks). Refresh when deps or lockfile change.
+if (!clearNext && nextServerExists) {
+  const serverMtime = fs.statSync(nextServerDir).mtimeMs;
+  for (const rel of ['package.json', 'package-lock.json', 'next.config.js', 'tailwind.config.ts', 'postcss.config.mjs']) {
+    const f = path.join(projectRoot, rel);
+    if (fs.existsSync(f) && fs.statSync(f).mtimeMs > serverMtime) {
+      clearNext = true;
+      break;
+    }
+  }
+}
 
 if (clearNext) {
   fs.rmSync(nextDir, { recursive: true, force: true });

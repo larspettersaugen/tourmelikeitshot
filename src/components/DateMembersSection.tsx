@@ -1,6 +1,6 @@
 'use client';
 
-import { UserCheck, Plus, X } from 'lucide-react';
+import { UserCheck, Plus, X, Phone, Mail } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 
@@ -9,7 +9,14 @@ type TourMember = {
   name: string;
   role: string;
   subgroup: string | null;
+  phone: string | null;
+  email: string | null;
 };
+
+function telHref(phone: string): string {
+  const compact = phone.replace(/\s/g, '');
+  return compact ? `tel:${compact}` : '#';
+}
 
 function subgroupSortKey(a: string | null, b: string | null): number {
   if (a === null && b === null) return 0;
@@ -98,19 +105,32 @@ function AddPeoplePanel({
 export function DateMembersSection({
   tourId,
   dateId,
-  travelingGroup,
+  travelingGroup: travelingGroupRaw,
   allowEdit,
   hideAllTourMessage,
   embedded,
 }: {
   tourId: string;
   dateId: string;
-  travelingGroup: TourMember[];
+  travelingGroup: {
+    id: string;
+    name: string;
+    role: string;
+    subgroup: string | null;
+    phone?: string | null;
+    email?: string | null;
+  }[];
   allowEdit: boolean;
   hideAllTourMessage?: boolean;
   /** When true, no outer card — sits inside DateInfo */
   embedded?: boolean;
 }) {
+  const travelingGroup: TourMember[] = travelingGroupRaw.map((m) => ({
+    ...m,
+    phone: m.phone ?? null,
+    email: m.email ?? null,
+  }));
+
   const [assignedIds, setAssignedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -240,7 +260,7 @@ export function DateMembersSection({
         }}
         className="shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium border border-stage-border text-stage-muted hover:text-white hover:border-stage-muted"
       >
-        {allowEdit ? 'Manage' : 'View'}
+        View
       </button>
     </div>
   );
@@ -255,7 +275,7 @@ export function DateMembersSection({
         role="dialog"
         aria-modal="true"
         aria-labelledby="date-members-modal-title"
-        className="w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col rounded-xl bg-stage-card border border-stage-border shadow-xl"
+        className="w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col rounded-xl bg-stage-card border border-stage-border shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3 p-4 border-b border-stage-border">
@@ -263,7 +283,11 @@ export function DateMembersSection({
             <h3 id="date-members-modal-title" className="text-sm font-semibold text-white flex items-center gap-2">
               <UserCheck className="h-4 w-4" /> People on this date
             </h3>
-            <p className="text-xs text-stage-muted mt-0.5">Add people from the tour to this venue.</p>
+            <p className="text-xs text-stage-muted mt-0.5">
+              {allowEdit
+                ? 'Phone numbers and emails below. Add or remove people from the tour for this date at the bottom.'
+                : 'Phone numbers and emails for everyone assigned to this date.'}
+            </p>
           </div>
           <button
             type="button"
@@ -294,17 +318,44 @@ export function DateMembersSection({
                         <p className="text-xs font-semibold text-zinc-500 px-3 pt-2 pb-1">{label}</p>
                         <ul className="divide-y divide-stage-border/80">
                           {members.map((m) => (
-                            <li key={m.id} className="flex items-center justify-between gap-2 p-3">
-                              <div className="min-w-0">
-                                <p className="font-medium text-white">{m.name}</p>
-                                <p className="text-xs text-stage-muted">{m.role}</p>
+                            <li key={m.id} className="flex items-start justify-between gap-3 p-3">
+                              <div className="min-w-0 flex-1 space-y-1.5">
+                                <div>
+                                  <p className="font-medium text-white">{m.name}</p>
+                                  <p className="text-xs text-stage-muted">{m.role}</p>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  {m.phone?.trim() ? (
+                                    <a
+                                      href={telHref(m.phone)}
+                                      className="inline-flex items-center gap-2 text-sm font-medium text-white hover:text-stage-accent"
+                                    >
+                                      <Phone className="h-4 w-4 shrink-0 text-stage-accent" aria-hidden />
+                                      <span className="tabular-nums">{m.phone.trim()}</span>
+                                    </a>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-2 text-sm text-stage-muted">
+                                      <Phone className="h-4 w-4 shrink-0 opacity-60" aria-hidden />
+                                      <span>—</span>
+                                    </span>
+                                  )}
+                                  {m.email?.trim() ? (
+                                    <a
+                                      href={`mailto:${m.email.trim()}`}
+                                      className="inline-flex items-center gap-2 text-xs text-stage-muted hover:text-stage-accent truncate max-w-full"
+                                    >
+                                      <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                      <span className="truncate">{m.email.trim()}</span>
+                                    </a>
+                                  ) : null}
+                                </div>
                               </div>
                               {allowEdit && (
                                 <button
                                   type="button"
                                   onClick={() => void removeMember(m.id)}
                                   disabled={saving}
-                                  className="shrink-0 px-2 py-1 rounded text-xs text-red-400 hover:bg-red-400/10 disabled:opacity-50"
+                                  className="shrink-0 px-2 py-1 rounded text-xs text-red-400 hover:bg-red-400/10 disabled:opacity-50 self-start"
                                 >
                                   Remove
                                 </button>

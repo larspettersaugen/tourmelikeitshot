@@ -205,6 +205,8 @@ export default async function TourDateDetailPage({
           name: m.name,
           role: m.role,
           subgroup: m.subgroup,
+          phone: m.phone,
+          email: m.email,
         }))}
         hideAllTourMessage={(session.user as { role?: string }).role === 'viewer'}
       />

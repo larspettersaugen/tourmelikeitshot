@@ -23,13 +23,18 @@ function InviteAcceptForm() {
       .then((r) => r.json())
       .then((data) => {
         if (data.error) setFetchError(data.error);
-        else {
+        else if (data.hasExistingPassword) {
+          const q = new URLSearchParams();
+          if (data.email?.trim()) q.set('email', data.email.trim());
+          q.set('fromInvite', '1');
+          router.replace(`/login?${q.toString()}`);
+        } else {
           setPersonName(data.personName);
           setEmail(data.email);
         }
       })
       .catch(() => setFetchError('Failed to load invite'));
-  }, [token]);
+  }, [token, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

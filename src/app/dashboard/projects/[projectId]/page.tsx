@@ -43,7 +43,7 @@ export default async function ProjectDetailPage({
         href="/dashboard/projects"
         className="inline-flex items-center gap-2 text-stage-muted hover:text-white mb-4"
       >
-        <ArrowLeft className="h-4 w-4" /> Projects
+        <ArrowLeft className="h-4 w-4" /> Artists
       </Link>
       <div className="mb-6">
         <h1 className="text-xl font-bold text-white">{project.name}</h1>

@@ -16,7 +16,7 @@ export function DashboardNav({ user }: { user: User }) {
         <div className="flex flex-shrink-0 items-center gap-3 min-w-0">
           <Link href="/dashboard" className="flex items-center gap-2 text-white font-semibold shrink-0">
             <Calendar className="h-6 w-6 shrink-0 text-stage-accent" />
-            <span className="hidden sm:inline truncate">Hernes Touring</span>
+            <span className="hidden sm:inline truncate">Tour It Like Its Hot</span>
           </Link>
           <Link
             href="/dashboard/people"

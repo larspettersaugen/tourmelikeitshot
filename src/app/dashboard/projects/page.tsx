@@ -24,19 +24,19 @@ export default async function ProjectsPage() {
 
   return (
     <div className="w-full max-w-6xl mx-auto p-6 lg:p-8 pb-8">
-      <h1 className="text-xl font-bold text-white mb-6">Projects</h1>
+      <h1 className="text-xl font-bold text-white mb-6">Artists</h1>
       <p className="text-stage-muted text-sm mb-6">
-        Artists and projects. Each project can have multiple tours.
+        Each artist (project) can have multiple tours.
       </p>
       {projects.length === 0 ? (
         <div className="rounded-xl bg-stage-card border border-stage-border p-8 text-center text-stage-muted">
-          <p>No projects yet.</p>
+          <p>No artists yet.</p>
           {allowEdit && (
             <Link
               href="/dashboard/projects/new"
               className="inline-flex items-center gap-2 mt-4 text-stage-accent hover:underline"
             >
-              <Plus className="h-4 w-4" /> Create your first project
+              <Plus className="h-4 w-4" /> Add your first artist
             </Link>
           )}
         </div>
@@ -67,7 +67,7 @@ export default async function ProjectsPage() {
               href="/dashboard/projects/new"
               className="flex items-center justify-center gap-2 mt-6 py-3 rounded-xl border border-dashed border-stage-border text-stage-muted hover:border-stage-accent/50 hover:text-stage-accent"
             >
-              <Plus className="h-4 w-4" /> New project
+              <Plus className="h-4 w-4" /> New artist
             </Link>
           )}
         </>

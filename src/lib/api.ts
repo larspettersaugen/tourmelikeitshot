@@ -417,6 +417,7 @@ export const api = {
           notes: string | null;
           userId: string | null;
           isPowerUser?: boolean;
+          hasPendingInvite?: boolean;
         }[]
       >(qs ? `/people?${qs}` : '/people');
     },
@@ -435,6 +436,11 @@ export const api = {
       }) =>
       fetchApi<{
         id: string;
+        name: string;
+        type: string;
+        phone: string | null;
+        email: string | null;
+        notes: string | null;
         inviteUrl?: string;
       }>('/people', { method: 'POST', body: JSON.stringify(body) }),
     update: (id: string, body: { name?: string; type?: string; birthdate?: string | null; phone?: string; email?: string; streetName?: string; zipCode?: string; county?: string; timezone?: string; notes?: string; userId?: string; isPowerUser?: boolean }) =>
@@ -447,6 +453,8 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(body ?? {}),
       }),
+    revokeInvite: (personId: string) =>
+      fetchApi<{ revoked: number }>(`/people/${personId}/invite`, { method: 'DELETE' }),
     delete: (id: string) => fetchApi<{ ok: boolean }>(`/people/${id}`, { method: 'DELETE' }),
   },
   me: {

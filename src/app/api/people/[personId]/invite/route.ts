@@ -86,3 +86,26 @@ export async function POST(
 
   return NextResponse.json({ inviteUrl });
 }
+
+/** Remove all unused invites for this person (outstanding links stop working). */
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ personId: string }> }
+) {
+  const session = await getSession();
+  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!canEdit((session.user as { role?: string }).role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const { personId } = await params;
+  if (!personId?.trim()) return NextResponse.json({ error: 'Person ID required' }, { status: 400 });
+
+  const person = await prisma.person.findUnique({ where: { id: personId }, select: { id: true } });
+  if (!person) return NextResponse.json({ error: 'Person not found' }, { status: 404 });
+
+  const result = await prisma.invite.deleteMany({
+    where: { personId, usedAt: null },
+  });
+
+  return NextResponse.json({ revoked: result.count });
+}

@@ -10,13 +10,14 @@ declare global {
 }
 
 function getPrisma(): ReturnType<typeof prismaClientSingleton> {
-  const cached = globalThis.prismaGlobal;
-  if (cached && typeof (cached as any).project?.findMany === 'function') {
-    return cached;
+  // Dev/HMR: reuse one client so we don't open new pools on every reload (Neon pool timeouts).
+  if (process.env.NODE_ENV !== 'production') {
+    if (!globalThis.prismaGlobal) {
+      globalThis.prismaGlobal = prismaClientSingleton();
+    }
+    return globalThis.prismaGlobal;
   }
-  const client = prismaClientSingleton();
-  if (process.env.NODE_ENV !== 'production') globalThis.prismaGlobal = client;
-  return client;
+  return prismaClientSingleton();
 }
 
 export const prisma = getPrisma();

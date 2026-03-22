@@ -18,7 +18,7 @@ export async function sendInviteEmail(
       body: JSON.stringify({
         from,
         to,
-        subject: `You're invited to ${process.env.NEXT_PUBLIC_APP_NAME || 'Hernes Touring'}`,
+        subject: `You're invited to ${process.env.NEXT_PUBLIC_APP_NAME || 'Tour It Like Its Hot'}`,
         html: `
           <p>Hi ${personName},</p>
           <p>You've been added to the touring crew app. Click the link below to set your password and access your profile:</p>

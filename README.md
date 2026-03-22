@@ -1,4 +1,4 @@
-# Hernes Touring
+# Tour It Like Its Hot
 
 Web app for tour managers and booking agents to manage tour data (schedules, flights, transport, contacts). Crew and band use the same app on mobile (responsive + PWA). Power users (editors/admins) can edit from any device.
 

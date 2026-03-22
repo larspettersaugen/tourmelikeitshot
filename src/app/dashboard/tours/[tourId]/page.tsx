@@ -27,7 +27,7 @@ export default async function TourDatesPage({
       dates: { orderBy: { date: 'asc' } },
     },
   });
-  if (!tour) redirect('/dashboard/projects');
+  if (!tour) redirect('/dashboard/tours');
 
   await cleanupOrphanedTravelGroupMembers(tourId);
   const travelingGroup = await prisma.travelGroupMember.findMany({

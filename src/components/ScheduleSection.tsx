@@ -45,6 +45,43 @@ function addMinutesToTime(time: string, minutes: number): string {
   return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
 }
 
+/**
+ * Last word = surname; everything before = given name(s).
+ * e.g. "Lars Petter Saugen" → given "Lars Petter", initial from "Saugen".
+ */
+function parseNameParts(fullName: string): { given: string; surnameInitial: string | null } {
+  const t = fullName.trim();
+  if (!t) return { given: '', surnameInitial: null };
+  const parts = t.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return { given: parts[0], surnameInitial: null };
+  const surname = parts[parts.length - 1];
+  const given = parts.slice(0, -1).join(' ');
+  const ch = surname[0];
+  const surnameInitial =
+    ch && /[A-Za-z\u00C0-\u024F]/.test(ch) ? ch.toUpperCase() : null;
+  return { given, surnameInitial };
+}
+
+/** Given name(s) only; "Lars Petter S." when the same given string repeats on this flight/leg. */
+function shortPassengerLabels(allFullNames: string[]): string[] {
+  const parsed = allFullNames.map((full) => ({ full, ...parseNameParts(full) }));
+  const givenCounts = new Map<string, number>();
+  for (const p of parsed) {
+    if (!p.given) continue;
+    const key = p.given.toLowerCase();
+    givenCounts.set(key, (givenCounts.get(key) ?? 0) + 1);
+  }
+  return parsed.map((p) => {
+    if (!p.given) return p.full || '';
+    const dup = (givenCounts.get(p.given.toLowerCase()) ?? 0) > 1;
+    if (dup) {
+      if (p.surnameInitial) return `${p.given} ${p.surnameInitial}.`;
+      return p.full;
+    }
+    return p.given;
+  });
+}
+
 type Item = {
   id: string;
   time: string;
@@ -144,7 +181,7 @@ export function ScheduleSection({
     }
   }, [allowEdit]);
 
-  const PASSENGER_COLLAPSE_THRESHOLD = 4;
+  const PASSENGER_COLLAPSE_THRESHOLD = 3;
   function togglePassengerExpand(id: string) {
     setExpandedPassengerIds((prev) => {
       const next = new Set(prev);
@@ -504,26 +541,28 @@ export function ScheduleSection({
                   </li>
                 ) : (
                   <li key={entry.item.id} className="p-4 flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0 flex flex-wrap items-baseline gap-x-3 gap-y-0">
-                      <div className="flex flex-col">
-                        <span className="font-mono text-stage-accent text-sm">{entry.item.time}</span>
+                    <div className="flex-1 min-w-0 flex items-start gap-3">
+                      <div className="flex flex-col shrink-0 font-mono text-sm tabular-nums">
+                        <span className="text-stage-accent">{entry.item.time}</span>
                         {entry.item.endTime && (
-                          <span className="font-mono text-stage-muted text-sm">{entry.item.endTime}</span>
+                          <span className="text-stage-muted">{entry.item.endTime}</span>
+                        )}
+                        {entry.item.durationMinutes != null && (
+                          <span className="text-stage-muted text-xs leading-tight mt-0.5">
+                            (
+                            {entry.item.durationMinutes >= 60
+                              ? `${Math.floor(entry.item.durationMinutes / 60)}h${entry.item.durationMinutes % 60 ? ` ${entry.item.durationMinutes % 60}m` : ''}`
+                              : `${entry.item.durationMinutes}m`}
+                            )
+                          </span>
                         )}
                       </div>
-                      {(entry.item.endTime || entry.item.durationMinutes != null) && (
-                        <span className="font-mono text-stage-muted text-sm">
-                          {entry.item.durationMinutes != null && (
-                            <span className="text-xs">
-                              ({entry.item.durationMinutes >= 60
-                                ? `${Math.floor(entry.item.durationMinutes / 60)}h${entry.item.durationMinutes % 60 ? ` ${entry.item.durationMinutes % 60}m` : ''}`
-                                : `${entry.item.durationMinutes}m`})
-                            </span>
-                          )}
-                        </span>
-                      )}
-                      <span className="ml-3 font-medium text-white">{entry.item.label}</span>
-                      {entry.item.notes && <p className="text-stage-muted text-sm mt-1">{entry.item.notes}</p>}
+                      <div className="min-w-0 flex-1">
+                        <span className="font-medium text-white">{entry.item.label}</span>
+                        {entry.item.notes && (
+                          <p className="text-stage-muted text-sm mt-1">{entry.item.notes}</p>
+                        )}
+                      </div>
                     </div>
                     {allowEdit && (
                       <div className="flex shrink-0 gap-1">
@@ -583,7 +622,10 @@ export function ScheduleSection({
                       const names = entry.flight.passengers.map((p) => p.name);
                       const many = names.length > PASSENGER_COLLAPSE_THRESHOLD;
                       const expanded = expandedPassengerIds.has(entry.flight.id);
-                      const visible = many && !expanded ? names.slice(0, PASSENGER_COLLAPSE_THRESHOLD) : names;
+                      const shortLabels = shortPassengerLabels(names);
+                      const visible = many && !expanded
+                        ? shortLabels.slice(0, PASSENGER_COLLAPSE_THRESHOLD)
+                        : shortLabels;
                       return (
                         <div className="text-stage-muted text-sm mt-1">
                           <span>{visible.join(', ')}{many && !expanded ? '…' : ''}</span>
@@ -629,7 +671,10 @@ export function ScheduleSection({
                       const names = entry.transport.passengers.map((p) => p.name);
                       const many = names.length > PASSENGER_COLLAPSE_THRESHOLD;
                       const expanded = expandedPassengerIds.has(entry.transport.id);
-                      const visible = many && !expanded ? names.slice(0, PASSENGER_COLLAPSE_THRESHOLD) : names;
+                      const shortLabels = shortPassengerLabels(names);
+                      const visible = many && !expanded
+                        ? shortLabels.slice(0, PASSENGER_COLLAPSE_THRESHOLD)
+                        : shortLabels;
                       return (
                         <div className="text-stage-muted text-sm mt-1">
                           <span>{visible.join(', ')}{many && !expanded ? '…' : ''}</span>
