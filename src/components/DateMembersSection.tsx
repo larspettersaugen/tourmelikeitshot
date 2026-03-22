@@ -275,7 +275,7 @@ export function DateMembersSection({
         role="dialog"
         aria-modal="true"
         aria-labelledby="date-members-modal-title"
-        className="w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col rounded-xl bg-stage-card border border-stage-border shadow-xl"
+        className="w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col rounded-xl bg-stage-card border border-stage-border shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3 p-4 border-b border-stage-border">

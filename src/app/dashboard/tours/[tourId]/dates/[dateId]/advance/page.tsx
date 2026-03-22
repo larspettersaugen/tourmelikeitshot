@@ -6,7 +6,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DateInfo } from '@/components/DateInfo';
 import { DateNavTabs } from '@/components/DateNavTabs';
 import { AdvanceContent } from '@/components/AdvanceContent';
-import { canEdit, canAccessAdvance } from '@/lib/session';
+import { canEdit, canEditAdvance, canAccessAdvance } from '@/lib/session';
 import { cleanupOrphanedTravelGroupMembers } from '@/lib/traveling-group';
 
 export default async function AdvancePage({
@@ -48,6 +48,7 @@ export default async function AdvancePage({
   });
 
   const allowEdit = canEdit((session.user as { role?: string }).role);
+  const allowAdvanceEdit = canEditAdvance((session.user as { role?: string }).role);
   const allowAdvance = canAccessAdvance((session.user as { role?: string }).role);
   if (!allowAdvance) redirect(`/dashboard/tours/${tourId}/dates/${dateId}`);
 
@@ -148,7 +149,8 @@ export default async function AdvancePage({
           dateId={dateId}
           initial={advanceData}
           files={files}
-          allowEdit={allowEdit}
+          allowEdit={allowAdvanceEdit}
+          allowChecklistToggle={allowAdvance}
         />
       </div>
     </div>

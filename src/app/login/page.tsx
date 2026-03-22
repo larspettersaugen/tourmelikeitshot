@@ -57,7 +57,7 @@ function LoginForm() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-4 bg-stage-dark">
       <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-center mb-2 text-white">Tour It Like Its Hot</h1>
+        <h1 className="text-2xl font-bold text-center mb-2 text-white">{"Tour Me Like It's Hot"}</h1>
         <p className="text-stage-muted text-center text-sm mb-8">Sign in to view your tour</p>
         {fromInvite && (
           <p className="text-sm text-zinc-400 text-center mb-6 -mt-4">
@@ -142,7 +142,7 @@ export default function LoginPage() {
     <Suspense fallback={
       <main className="min-h-screen flex flex-col items-center justify-center p-4 bg-stage-dark">
         <div className="w-full max-w-sm">
-          <h1 className="text-2xl font-bold text-center mb-2 text-white">Tour It Like Its Hot</h1>
+          <h1 className="text-2xl font-bold text-center mb-2 text-white">{"Tour Me Like It's Hot"}</h1>
           <p className="text-stage-muted text-center">Loading…</p>
         </div>
       </main>

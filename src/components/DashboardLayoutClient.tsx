@@ -36,7 +36,7 @@ export function DashboardLayoutClient({ user, children }: { user: User; children
       <div className={`shrink-0 border-b border-stage-border flex items-center ${sidebarCollapsed ? 'p-3 justify-center' : 'p-4'}`}>
         <Link href="/dashboard" className={`flex items-center text-white font-semibold ${sidebarCollapsed ? 'justify-center' : 'gap-2'}`}>
           <Calendar className="h-6 w-6 shrink-0 text-stage-accent" />
-          {!sidebarCollapsed && <span className="truncate">Tour It Like Its Hot</span>}
+          {!sidebarCollapsed && <span className="truncate">{"Tour Me Like It's Hot"}</span>}
         </Link>
       </div>
       <nav className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 ${sidebarCollapsed ? 'p-2 items-center' : 'p-3'}`}>
@@ -118,7 +118,7 @@ export function DashboardLayoutClient({ user, children }: { user: User; children
         <header className="flex lg:hidden shrink-0 flex-row items-center justify-between h-14 px-4 border-b border-stage-border bg-stage-dark min-h-[3.5rem]">
           <Link href="/dashboard" className="flex items-center gap-2 text-white font-semibold">
             <Calendar className="h-6 w-6 shrink-0 text-stage-accent" />
-            <span>Tour It Like Its Hot</span>
+            <span>{"Tour Me Like It's Hot"}</span>
           </Link>
           <div className="relative">
             <button

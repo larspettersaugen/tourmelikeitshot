@@ -1,6 +1,6 @@
 {
-  "name": "Tour It Like Its Hot",
-  "short_name": "Tour It Hot",
+  "name": "Tour Me Like It's Hot",
+  "short_name": "Tour Me Hot",
   "description": "Schedules, flights, transport and contacts for touring crew and bands",
   "start_url": "/",
   "display": "standalone",

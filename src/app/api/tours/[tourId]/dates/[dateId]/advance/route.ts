@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
-import { canEdit, canAccessAdvance } from '@/lib/session';
+import { canEditAdvance, canAccessAdvance } from '@/lib/session';
 
 export async function GET(
   _req: Request,
@@ -41,7 +41,8 @@ export async function PATCH(
 ) {
   const session = await getSession();
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!canEdit((session.user as { role?: string }).role)) {
+  const role = (session.user as { role?: string }).role;
+  if (!canEditAdvance(role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { tourId, dateId } = await params;

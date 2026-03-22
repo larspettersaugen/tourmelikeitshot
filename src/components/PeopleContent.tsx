@@ -392,7 +392,7 @@ export function PeopleContent({
                   </button>
                   {phone && (
                     <a
-                      href={`sms:${phone}?body=${encodeURIComponent(`You're invited to ${process.env.NEXT_PUBLIC_APP_NAME || 'Tour It Like Its Hot'}. Set up your account: ${inviteResult.inviteUrl}`)}`}
+                      href={`sms:${phone}?body=${encodeURIComponent(`You're invited to ${process.env.NEXT_PUBLIC_APP_NAME || "Tour Me Like It's Hot"}. Set up your account: ${inviteResult.inviteUrl}`)}`}
                       className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-stage-card border border-stage-border text-stage-muted hover:text-white text-sm"
                     >
                       <Send className="h-4 w-4" /> Send via SMS
@@ -645,7 +645,7 @@ export function PeopleContent({
                         </button>
                         {p.phone && (
                           <a
-                            href={`sms:${p.phone}?body=${encodeURIComponent(`You're invited to ${process.env.NEXT_PUBLIC_APP_NAME || 'Tour It Like Its Hot'}. Set up your account: ${inviteResult.inviteUrl}`)}`}
+                            href={`sms:${p.phone}?body=${encodeURIComponent(`You're invited to ${process.env.NEXT_PUBLIC_APP_NAME || "Tour Me Like It's Hot"}. Set up your account: ${inviteResult.inviteUrl}`)}`}
                             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-stage-card border border-stage-border text-stage-muted hover:text-white text-sm"
                           >
                             <Send className="h-4 w-4" /> Send via SMS

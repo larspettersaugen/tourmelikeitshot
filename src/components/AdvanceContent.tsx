@@ -49,12 +49,15 @@ export function AdvanceContent({
   initial,
   files: initialFiles,
   allowEdit,
+  allowChecklistToggle,
 }: {
   tourId: string;
   dateId: string;
   initial: AdvanceData;
   files: AdvanceFile[];
   allowEdit: boolean;
+  /** Power users: Done / Compromises only (full text + files still allowEdit). */
+  allowChecklistToggle: boolean;
 }) {
   const [technicalInfo, setTechnicalInfo] = useState(initial.technicalInfo ?? '');
   const [rider, setRider] = useState(initial.rider ?? '');
@@ -250,16 +253,16 @@ export function AdvanceContent({
                     role="checkbox"
                     tabIndex={0}
                     aria-checked={done}
-                    onClick={() => allowEdit && handleCheckboxChange(sectionId, 'done', !done)}
+                    onClick={() => allowChecklistToggle && handleCheckboxChange(sectionId, 'done', !done)}
                     onKeyDown={(e) => {
-                      if (allowEdit && (e.key === 'Enter' || e.key === ' ')) {
+                      if (allowChecklistToggle && (e.key === 'Enter' || e.key === ' ')) {
                         e.preventDefault();
                         handleCheckboxChange(sectionId, 'done', !done);
                       }
                     }}
                     className={`inline-flex h-5 w-5 items-center justify-center rounded border transition-colors ${
                       done ? 'bg-emerald-500/30 border-emerald-500/50' : 'border-stage-border bg-stage-dark'
-                    } ${allowEdit ? 'cursor-pointer hover:border-stage-muted' : 'cursor-default'}`}
+                    } ${allowChecklistToggle ? 'cursor-pointer hover:border-stage-muted' : 'cursor-default'}`}
                   >
                     {done && <Check className="h-3 w-3 text-emerald-400" />}
                   </span>
@@ -270,16 +273,16 @@ export function AdvanceContent({
                     role="checkbox"
                     tabIndex={0}
                     aria-checked={compromises}
-                    onClick={() => allowEdit && handleCheckboxChange(sectionId, 'compromises', !compromises)}
+                    onClick={() => allowChecklistToggle && handleCheckboxChange(sectionId, 'compromises', !compromises)}
                     onKeyDown={(e) => {
-                      if (allowEdit && (e.key === 'Enter' || e.key === ' ')) {
+                      if (allowChecklistToggle && (e.key === 'Enter' || e.key === ' ')) {
                         e.preventDefault();
                         handleCheckboxChange(sectionId, 'compromises', !compromises);
                       }
                     }}
                     className={`inline-flex h-5 w-5 items-center justify-center rounded border transition-colors ${
                       compromises ? 'bg-amber-500/30 border-amber-500/50' : 'border-stage-border bg-stage-dark'
-                    } ${allowEdit ? 'cursor-pointer hover:border-stage-muted' : 'cursor-default'}`}
+                    } ${allowChecklistToggle ? 'cursor-pointer hover:border-stage-muted' : 'cursor-default'}`}
                   >
                     {compromises && <Check className="h-3 w-3 text-amber-400" />}
                   </span>
