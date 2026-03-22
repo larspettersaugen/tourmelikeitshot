@@ -26,7 +26,7 @@ Vercel imports from Git. Commit and push this repository (including `prisma/migr
    | `NEXTAUTH_URL` | `https://YOUR-PROJECT.vercel.app` (replace after first deploy with the real URL, including custom domain if you add one) |
    | Optional | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY` (invites + **password reset**), `BETA_JOIN_SECRET`, etc. |
 
-3. Deploy. The build runs `prisma generate`, `prisma migrate deploy`, then `next build --webpack` (see `vercel.json`).
+3. Deploy. The build runs `prisma generate`, `prisma migrate deploy` (with retries via `scripts/prisma-migrate-deploy-retry.mjs`), then `next build --webpack`; `vercel.json` also sets `NODE_OPTIONS` for a larger heap during webpack (see `vercel.json`).
 
 4. After the first successful deploy, confirm **`NEXTAUTH_URL`** exactly matches the site URL (scheme + host, no trailing slash). Redeploy if you change it.
 

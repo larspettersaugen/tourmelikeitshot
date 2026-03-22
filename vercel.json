@@ -1,3 +1,8 @@
 {
-  "buildCommand": "prisma generate && bash scripts/prisma-migrate-deploy-retry.sh && next build --webpack"
+  "build": {
+    "env": {
+      "NODE_OPTIONS": "--max-old-space-size=6144"
+    }
+  },
+  "buildCommand": "prisma generate && node scripts/prisma-migrate-deploy-retry.mjs && next build --webpack"
 }
