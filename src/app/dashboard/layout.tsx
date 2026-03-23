@@ -4,6 +4,9 @@ import { DashboardLayoutClient } from '@/components/DashboardLayoutClient';
 import { MobileDayNav } from '@/components/MobileDayNav';
 import { TourDatesSidebarProvider } from '@/contexts/TourDatesSidebarContext';
 
+/** getServerSession uses headers(); static prerender fails on Vercel (dynamic-server-error). */
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   if (!session?.user) redirect('/login');
