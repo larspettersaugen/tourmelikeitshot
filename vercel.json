@@ -4,5 +4,5 @@
       "NODE_OPTIONS": "--max-old-space-size=6144"
     }
   },
-  "buildCommand": "prisma generate && node scripts/prisma-migrate-deploy-retry.mjs && next build --webpack"
+  "buildCommand": "npx prisma generate && node scripts/prisma-migrate-deploy-retry.mjs && npx next build --webpack"
 }
