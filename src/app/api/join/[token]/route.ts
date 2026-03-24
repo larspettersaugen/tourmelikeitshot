@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { hash } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { createServiceClient } from '@/lib/supabase/server';
 import {
   betaJoinTokenMatches,
   getBetaJoinSecret,
@@ -68,24 +68,27 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
       { status: 400 }
     );
   }
-  if (existingUser && !existingUser.password) {
-    return NextResponse.json(
-      { error: 'This email is linked to Google sign-in. Use “Sign in with Google” on the login page.' },
-      { status: 400 }
-    );
-  }
-  if (existingUser && existingUser.password) {
+  if (existingUser) {
     return NextResponse.json({ error: 'This email is already registered. Sign in instead.' }, { status: 400 });
   }
 
-  const hashed = await hash(password, 12);
+  const supabase = await createServiceClient();
+  const { error: authError } = await supabase.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (authError) {
+    console.error('[POST /api/join] Supabase auth error:', authError);
+    return NextResponse.json({ error: 'Could not create account. Try a different email.' }, { status: 500 });
+  }
 
   try {
     await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
           email,
-          password: hashed,
+          password: null,
           name,
           role: 'viewer',
         },

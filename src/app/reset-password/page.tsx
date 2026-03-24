@@ -1,21 +1,35 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const MIN_LEN = 10;
 
 function ResetPasswordForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get('token')?.trim() ?? '';
-
+  const supabase = createClient();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    // Supabase puts recovery tokens in the URL hash; the client auto-exchanges them.
+    // Wait for the session to be established from the recovery link.
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setReady(true);
+      }
+    });
+    // Also check if already in a session (user clicked link and session is active)
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setReady(true);
+    });
+  }, [supabase.auth]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,38 +43,24 @@ function ResetPasswordForm() {
       return;
     }
     setLoading(true);
-    try {
-      const res = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password }),
-      });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) {
-        setError(data.error || 'Could not reset password');
-        setLoading(false);
-        return;
-      }
-      router.push('/login?reset=1');
-      router.refresh();
-    } catch {
-      setError('Something went wrong');
-      setLoading(false);
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+    setLoading(false);
+    if (updateError) {
+      setError(updateError.message || 'Could not reset password');
+      return;
     }
+    router.push('/login?reset=1');
+    router.refresh();
   }
 
-  if (!token) {
+  if (!ready) {
     return (
       <main className="relative min-h-screen flex flex-col items-center justify-center p-4 bg-stage-surface">
         <div className="absolute top-4 right-4">
           <ThemeToggle />
         </div>
         <div className="w-full max-w-sm text-center space-y-4">
-          <h1 className="text-xl font-bold text-white">Invalid link</h1>
-          <p className="text-stage-muted text-sm">This reset link is missing a token. Request a new link from the login page.</p>
-          <Link href="/forgot-password" className="inline-block text-stage-accent hover:underline font-medium">
-            Forgot password
-          </Link>
+          <p className="text-stage-muted text-sm">Verifying reset link…</p>
         </div>
       </main>
     );

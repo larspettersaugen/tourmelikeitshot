@@ -1,16 +1,46 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from './auth';
+import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
+
+export interface SessionUser {
+  id: string;
+  email: string;
+  name?: string | null;
+  image?: string | null;
+  role?: string;
+}
+
+export interface AppSession {
+  user: SessionUser;
+}
 
 /**
  * Read the current session in RSC / route handlers.
- * NextAuth's getServerSession throws on some failures (e.g. invalid JWT after secret change);
- * we return null so pages redirect to login instead of a bare 500.
+ * Gets the Supabase auth user from the cookie, then looks up the Prisma User for role/name.
+ * Returns the same shape the app expects so API routes need no changes.
  */
-export async function getSession() {
+export async function getSession(): Promise<AppSession | null> {
   try {
-    return await getServerSession(authOptions);
+    const supabase = await createClient();
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser?.email) return null;
+
+    const dbUser = await prisma.user.findUnique({
+      where: { email: authUser.email },
+      select: { id: true, email: true, name: true, image: true, role: true },
+    });
+    if (!dbUser) return null;
+
+    return {
+      user: {
+        id: dbUser.id,
+        email: dbUser.email,
+        name: dbUser.name,
+        image: dbUser.image,
+        role: dbUser.role,
+      },
+    };
   } catch (err) {
-    console.error('[getSession] Failed to read session (try signing out or fix NEXTAUTH_SECRET):', err);
+    console.error('[getSession] Failed to read session:', err);
     return null;
   }
 }

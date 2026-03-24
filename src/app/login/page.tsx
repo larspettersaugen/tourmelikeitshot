@@ -2,8 +2,8 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { signIn, getProviders } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 function LoginForm() {
@@ -18,9 +18,13 @@ function LoginForm() {
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const fromInvite = searchParams.get('fromInvite') === '1';
   const passwordResetOk = searchParams.get('reset') === '1';
+  const supabase = createClient();
 
   useEffect(() => {
-    getProviders().then((providers) => setHasGoogle(!!providers?.google));
+    setHasGoogle(
+      !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !!process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,
+    );
   }, []);
 
   useEffect(() => {
@@ -31,7 +35,10 @@ function LoginForm() {
   async function handleGoogleSignIn() {
     setError('');
     setGoogleLoading(true);
-    await signIn('google', { callbackUrl });
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/api/auth/callback` },
+    });
     setGoogleLoading(false);
   }
 
@@ -39,14 +46,13 @@ function LoginForm() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const res = await signIn('credentials', { email, password, redirect: false });
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     setLoading(false);
-    if (res?.error) {
+    if (authError) {
       setError('Invalid email or password');
-      return;
-    }
-    if (!res?.ok) {
-      setError('Login failed. Please try again.');
       return;
     }
     router.push(callbackUrl);

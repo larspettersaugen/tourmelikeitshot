@@ -1,35 +1,49 @@
 import { PrismaClient } from '@prisma/client';
-import { hash } from 'bcryptjs';
+import { createClient } from '@supabase/supabase-js';
 
 const prisma = new PrismaClient();
 
 /**
- * Ensures local dev login accounts exist with known passwords.
- * Does not add tours, people, or projects — use `npm run db:import-sqlite` to
- * restore from prisma/dev.db, or create data in the app.
+ * Ensures local dev login accounts exist in both Supabase Auth and Prisma.
+ * Reads NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from env.
  */
 async function main() {
-  const adminPassword = await hash('admin123', 12);
-  const editorPassword = await hash('editor123', 12);
-  const viewerPassword = await hash('viewer123', 12);
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error('Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env');
+    process.exit(1);
+  }
 
-  await prisma.user.upsert({
-    where: { email: 'admin@tour.local' },
-    update: { password: adminPassword },
-    create: { email: 'admin@tour.local', password: adminPassword, name: 'Admin', role: 'admin' },
-  });
-  await prisma.user.upsert({
-    where: { email: 'editor@tour.local' },
-    update: { password: editorPassword },
-    create: { email: 'editor@tour.local', password: editorPassword, name: 'Editor', role: 'editor' },
-  });
-  await prisma.user.upsert({
-    where: { email: 'viewer@tour.local' },
-    update: { password: viewerPassword },
-    create: { email: 'viewer@tour.local', password: viewerPassword, name: 'Viewer', role: 'viewer' },
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  console.log('Seed done (dev users only). Login: admin@tour.local / admin123');
+  const devUsers = [
+    { email: 'admin@tour.local', password: 'admin123admin', name: 'Admin', role: 'admin' },
+    { email: 'editor@tour.local', password: 'editor123edit', name: 'Editor', role: 'editor' },
+    { email: 'viewer@tour.local', password: 'viewer123view', name: 'Viewer', role: 'viewer' },
+  ];
+
+  for (const u of devUsers) {
+    const { error } = await supabase.auth.admin.createUser({
+      email: u.email,
+      password: u.password,
+      email_confirm: true,
+      user_metadata: { name: u.name },
+    });
+    if (error && !error.message?.includes('already been registered')) {
+      console.warn(`  Supabase auth: ${u.email} - ${error.message}`);
+    }
+
+    await prisma.user.upsert({
+      where: { email: u.email },
+      update: { name: u.name, role: u.role },
+      create: { email: u.email, password: null, name: u.name, role: u.role },
+    });
+  }
+
+  console.log('Seed done (dev users). Login: admin@tour.local / admin123admin');
 }
 
 main()

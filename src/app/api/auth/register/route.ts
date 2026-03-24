@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { hash } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { createServiceClient } from '@/lib/supabase/server';
 
 export async function POST(req: Request) {
   try {
@@ -12,9 +12,20 @@ export async function POST(req: Request) {
     if (existing) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 400 });
     }
-    const hashed = await hash(password, 12);
+
+    const supabase = await createServiceClient();
+    const { error: authError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+    if (authError) {
+      console.error('[register] Supabase auth error:', authError);
+      return NextResponse.json({ error: 'Registration failed' }, { status: 500 });
+    }
+
     const user = await prisma.user.create({
-      data: { email, password: hashed, name: name || null, role },
+      data: { email, password: null, name: name || null, role },
     });
     return NextResponse.json({ id: user.id, email: user.email, name: user.name, role: user.role });
   } catch (e) {

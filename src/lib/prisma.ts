@@ -13,8 +13,7 @@ function assertDatabaseUrlConfigured(): void {
   throw new Error(
     [
       'DATABASE_URL is missing or still the .env.example placeholder.',
-      'Open https://neon.tech → your project → copy the connection string (pooled URL for Prisma).',
-      'Put it in .env or .env.local as DATABASE_URL=... then restart npm run dev.',
+      'Set your Supabase Postgres connection string in .env or .env.local as DATABASE_URL=... then restart npm run dev.',
       'Do not commit real URLs to git.',
     ].join(' '),
   );

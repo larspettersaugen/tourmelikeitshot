@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { signOut } from 'next-auth/react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Calendar, LogOut, Menu, Users, UserCircle, LayoutDashboard, FolderOpen, Contact, PanelLeftClose, PanelLeftOpen, FileStack, MapPin, Building2 } from 'lucide-react';
 import { useState } from 'react';
-import type { User } from 'next-auth';
+import { createClient } from '@/lib/supabase/client';
 import { useTourDatesSidebar } from '@/contexts/TourDatesSidebarContext';
+
+interface User { id?: string; email?: string | null; name?: string | null; image?: string | null; role?: string }
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const allNavItems = [
@@ -23,6 +24,14 @@ export function DashboardLayoutClient({ user, children }: { user: User; children
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  }
   const role = (user as { role?: string }).role;
   const navItems = role === 'viewer'
     ? allNavItems.filter((n) =>
@@ -82,7 +91,7 @@ export function DashboardLayoutClient({ user, children }: { user: User; children
           {!sidebarCollapsed && <span>My profile</span>}
         </Link>
         <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
+          onClick={handleSignOut}
           title={sidebarCollapsed ? 'Sign out' : undefined}
           className={`flex items-center rounded-lg text-sm text-red-400 hover:bg-red-400/10 ${sidebarCollapsed ? 'p-2 justify-center' : 'gap-3 w-full px-3 py-2 text-left'}`}
         >
@@ -153,7 +162,7 @@ export function DashboardLayoutClient({ user, children }: { user: User; children
                   <Link href="/dashboard/profile" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-stage-surface">
                     <UserCircle className="h-4 w-4 shrink-0" /> My profile
                   </Link>
-                  <button onClick={() => signOut({ callbackUrl: '/login' })} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left text-red-400 hover:bg-stage-surface">
+                  <button onClick={handleSignOut} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left text-red-400 hover:bg-stage-surface">
                     <LogOut className="h-4 w-4 shrink-0" /> Sign out
                   </button>
                 </div>

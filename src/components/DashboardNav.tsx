@@ -1,15 +1,25 @@
 'use client';
 
 import Link from 'next/link';
-import { signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { Calendar, LogOut, Menu, Users, UserCircle, Contact } from 'lucide-react';
 import { useState } from 'react';
-import type { User } from 'next-auth';
+import { createClient } from '@/lib/supabase/client';
 import { ThemeToggle } from '@/components/ThemeToggle';
+
+interface User { id?: string; email?: string | null; name?: string | null; image?: string | null; role?: string }
 
 export function DashboardNav({ user }: { user: User }) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const supabase = createClient();
   const role = (user as { role?: string }).role;
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  }
 
   return (
     <header className="sticky top-0 z-50 shrink-0 w-full border-b border-stage-border bg-stage-surface text-white">
@@ -61,7 +71,7 @@ export function DashboardNav({ user }: { user: User }) {
                     My profile
                   </Link>
                   <button
-                    onClick={() => signOut({ callbackUrl: '/login' })}
+                    onClick={handleSignOut}
                     className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left text-red-400 hover:bg-stage-surface"
                   >
                     <LogOut className="h-4 w-4" />

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { hash } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { createServiceClient } from '@/lib/supabase/server';
 
 export async function POST(
   req: Request,
@@ -31,11 +31,24 @@ export async function POST(
     );
   }
 
-  const hashed = await hash(password, 12);
+  const email = person.user?.email ?? person.email;
+  if (!email) return NextResponse.json({ error: 'No email for this account' }, { status: 400 });
+
+  const supabase = await createServiceClient();
+  const { error: authError } = await supabase.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (authError && !authError.message?.includes('already been registered')) {
+    console.error('[invite/accept] Supabase auth error:', authError);
+    return NextResponse.json({ error: 'Failed to set up account' }, { status: 500 });
+  }
+
   await prisma.$transaction([
     prisma.user.update({
       where: { id: person.userId },
-      data: { password: hashed },
+      data: { password: 'managed-by-supabase' },
     }),
     prisma.invite.update({
       where: { id: invite.id },

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
@@ -79,12 +79,12 @@ function BetaJoinForm() {
         return;
       }
       const signEmail = data.email || email.trim().toLowerCase();
-      const signRes = await signIn('credentials', {
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: signEmail,
         password,
-        redirect: false,
       });
-      if (signRes?.error) {
+      if (signInError) {
         setError('Account created. Sign in on the login page.');
         setSubmitting(false);
         return;
