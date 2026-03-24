@@ -21,6 +21,7 @@
     "db:migrate-projects": "node prisma/migrate-to-projects.cjs",
     "db:import-sqlite": "tsx scripts/import-sqlite-to-neon.ts",
     "stitch:fetch": "node scripts/fetch-stitch-screen.mjs",
+    "db:set-password": "node scripts/set-supabase-user-password.mjs",
     "postinstall": "prisma generate",
     "prepare": "husky"
   },
