@@ -14,6 +14,8 @@ Web app for tour managers and booking agents to manage tour data (schedules, fli
 
 **UI / Google Stitch:** see [`docs/STITCH_UI.md`](docs/STITCH_UI.md) for how to use [Stitch](https://stitch.withgoogle.com) designs with this Tailwind + theme setup.
 
+**Local logins (admin / seed users):** [`docs/DEV_ACCOUNTS.md`](docs/DEV_ACCOUNTS.md)
+
 ## Setup (from scratch)
 
 Use **one** PostgreSQL database. **Neon** is the recommended default (free tier, no Docker). To use **Supabase** as the Postgres provider without rewriting the app, follow **`docs/SUPABASE_MIGRATION.md`** (Tier A).
