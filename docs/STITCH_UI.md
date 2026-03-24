@@ -21,11 +21,36 @@ When you paste Stitch-generated markup:
 - Prefer **`bg-stage-*`, `text-stage-*`, `border-stage-*`** over raw hex colors so **dark mode** and future tweaks stay consistent.
 - Keep **layout rules** from [`.cursor/rules/stability.mdc`](../.cursor/rules/stability.mdc) in mind (e.g. [`DashboardLayoutClient`](../src/components/DashboardLayoutClient.tsx) breakpoints and structure).
 
+## Download HTML + preview image from Stitch (project / screen IDs)
+
+Stitch does **not** publish permanent public URLs for assets. The hosted links are **short-lived** and returned only after **authenticated** API calls. Plain `curl` against a fixed URL will not work without first obtaining those URLs with a **Stitch API key**.
+
+1. In Stitch: **Settings → API Keys** → create a key.
+2. Add to `.env.local`: `STITCH_API_KEY="..."` (never commit this file).
+3. From the repo root, fetch your screen (defaults are set for project `16355217856079053150`, screen `dee37b25120a4f1db8dd8bc5758e817a` — Dashboard “The Hub”):
+
+   ```bash
+   npm run stitch:fetch
+   ```
+
+   Outputs:
+
+   - `design/stitch/<projectId>/dashboard-the-hub.html`
+   - `design/stitch/<projectId>/dashboard-the-hub.png`
+
+4. Override IDs or filename slug if needed:
+
+   ```bash
+   STITCH_PROJECT_ID=... STITCH_SCREEN_ID=... STITCH_OUTPUT_SLUG=my-screen npm run stitch:fetch
+   ```
+
+The script uses `@google/stitch-sdk` under the hood (same as `curl -L` on the returned URLs, but only after auth).
+
 ## Practical next steps
 
 1. Pick **one screen** to start (e.g. `/login` or dashboard chrome).
-2. Export from Stitch and save the snippet (or a screenshot + notes).
-3. In **Agent mode**, ask to “apply this Stitch export to `src/app/login/page.tsx`” (or attach the file) so changes stay aligned with existing patterns.
+2. Run `npm run stitch:fetch` (or paste exported code from Stitch manually).
+3. In **Agent mode**, ask to “apply `design/stitch/.../dashboard-the-hub.html` to the dashboard” (or attach the file) so changes stay aligned with existing patterns.
 
 ## If you meant something else
 

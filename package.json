@@ -20,6 +20,7 @@
     "db:assign-marius-pm": "node prisma/assign-marius-productionmanager.cjs",
     "db:migrate-projects": "node prisma/migrate-to-projects.cjs",
     "db:import-sqlite": "tsx scripts/import-sqlite-to-neon.ts",
+    "stitch:fetch": "node scripts/fetch-stitch-screen.mjs",
     "postinstall": "prisma generate",
     "prepare": "husky"
   },
@@ -41,6 +42,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@google/stitch-sdk": "^0.0.3",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
