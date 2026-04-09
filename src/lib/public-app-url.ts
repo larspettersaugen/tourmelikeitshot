@@ -17,6 +17,25 @@ function isLocalhostUrl(url: string): boolean {
 
 type HeaderGetter = (name: string) => string | null;
 
+function requestProto(getHeader: HeaderGetter, host: string): string {
+  const raw = getHeader('x-forwarded-proto');
+  const first = raw?.split(',')[0]?.trim();
+  if (first) {
+    const onVercel = process.env.VERCEL === '1';
+    if (onVercel && first === 'http' && !isLocalhostHost(host)) {
+      return 'https';
+    }
+    return first;
+  }
+  if (isLocalhostHost(host)) {
+    return 'http';
+  }
+  if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
+    return 'https';
+  }
+  return 'http';
+}
+
 /**
  * Base URL for links shared outside the browser (invites, SMS, beta join).
  *
@@ -30,7 +49,7 @@ export function getPublicAppBaseUrl(getHeader: HeaderGetter): string {
   if (fromPublic) return fromPublic;
 
   const host = getHeader('x-forwarded-host') ?? getHeader('host') ?? 'localhost:3000';
-  const proto = getHeader('x-forwarded-proto') ?? 'http';
+  const proto = requestProto(getHeader, host);
   const fromRequest = `${proto}://${host}`;
 
   const nextAuth = normalizedBaseUrl(process.env.NEXTAUTH_URL);

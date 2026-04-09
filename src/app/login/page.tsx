@@ -166,7 +166,7 @@ function LoginForm() {
             href="/signup"
             className="text-stage-accent hover:underline underline-offset-2"
           >
-            Set up your account
+            Activate tour account
           </Link>
         </p>
       </div>

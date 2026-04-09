@@ -45,7 +45,14 @@ For Google OAuth later, add your app’s callback URL as documented in Supabase 
 
 Redeploy the project (Deployments → … → Redeploy) so the new values apply to the next build and runtime.
 
+## Row Level Security (Security Advisor)
+
+Prisma tables live in `schema public`. Supabase’s **Data API** (`anon` / `authenticated`) must not expose them directly—this app uses **Prisma** and **server routes** for all tour/people data.
+
+Migration **`20260409190000_supabase_rls_lock_public_tables`** enables **RLS** on every `public` base table (except `_prisma_migrations`) and **revokes** `anon` / `authenticated` table privileges where those roles exist. The database user used by **`DATABASE_URL`** (Postgres / pooler) **bypasses RLS**, so the app keeps working; Supabase advisor warnings for publicly readable tables and sensitive columns via the API should clear after `prisma migrate deploy`.
+
 ## See also
 
 - [`.env.example`](../.env.example) — local template
 - [`DEPLOY.md`](../DEPLOY.md) — broader deploy notes (some sections may still mention Neon; prefer this file for Supabase env names)
+- [`NETWORK_AND_IT.md`](./NETWORK_AND_IT.md) — firewall / HTTPS inspection / allowlisting for organisations
