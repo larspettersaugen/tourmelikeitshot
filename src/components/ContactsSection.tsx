@@ -286,10 +286,10 @@ export function ContactsSection({
 
   return (
     <section>
-      <h2 className="text-sm font-semibold text-zinc-400 flex items-center gap-2 mb-3">
+      <h2 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2 mb-3">
         <Users className="h-4 w-4" /> Contacts
       </h2>
-      <div className="rounded-xl bg-stage-card border border-stage-border overflow-hidden">
+      <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 overflow-hidden ring-1 ring-white/[0.04]">
         {error && !adding && (
           <p className="px-4 py-2 text-sm text-red-400 border-b border-stage-border">{error}</p>
         )}

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
+import { composePersonName, splitLegacyName } from '@/lib/person-name';
 
 const PERSON_TYPES = ['musician', 'superstar', 'crew', 'tour_manager', 'productionmanager', 'driver'] as const;
 
@@ -12,7 +13,17 @@ export async function GET() {
 
   const person = await prisma.person.findFirst({
     where: { userId },
-    select: { id: true, name: true, type: true, phone: true, email: true, notes: true },
+    select: {
+      id: true,
+      firstName: true,
+      middleName: true,
+      lastName: true,
+      name: true,
+      type: true,
+      phone: true,
+      email: true,
+      notes: true,
+    },
   });
   return NextResponse.json(person);
 }
@@ -55,9 +66,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `type must be one of: ${PERSON_TYPES.join(', ')}` }, { status: 400 });
   }
 
+  const sp = splitLegacyName(name);
+  const displayName = composePersonName(sp.firstName, sp.middleName, sp.lastName);
   const person = await prisma.person.create({
     data: {
-      name,
+      firstName: sp.firstName,
+      middleName: sp.middleName,
+      lastName: sp.lastName,
+      name: displayName,
       type,
       phone: body.phone || null,
       email: body.email || session.user.email || null,
@@ -85,8 +101,23 @@ export async function PATCH(req: Request) {
   if (!person) return NextResponse.json({ error: 'No linked profile. Use POST to create one.' }, { status: 404 });
 
   const body = await req.json();
-  const data: { name?: string; type?: string; phone?: string | null; email?: string | null; notes?: string | null } = {};
-  if (body.name !== undefined) data.name = body.name;
+  const data: {
+    firstName?: string;
+    middleName?: string | null;
+    lastName?: string;
+    name?: string;
+    type?: string;
+    phone?: string | null;
+    email?: string | null;
+    notes?: string | null;
+  } = {};
+  if (body.name !== undefined) {
+    const sp = splitLegacyName(String(body.name));
+    data.firstName = sp.firstName;
+    data.middleName = sp.middleName;
+    data.lastName = sp.lastName;
+    data.name = composePersonName(sp.firstName, sp.middleName, sp.lastName);
+  }
   if (body.type !== undefined) {
     if (!PERSON_TYPES.includes(body.type)) {
       return NextResponse.json({ error: `type must be one of: ${PERSON_TYPES.join(', ')}` }, { status: 400 });

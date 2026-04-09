@@ -34,7 +34,16 @@ const config: Config = {
           fg: 'rgb(var(--stage-fg) / <alpha-value>)',
           /** Text on amber accent buttons (high contrast in both themes) */
           accentFg: 'rgb(var(--stage-accent-fg) / <alpha-value>)',
+          /** Tour date “day sheet” accents */
+          neonCyan: 'rgb(var(--stage-neon-cyan) / <alpha-value>)',
+          violet: 'rgb(var(--stage-violet) / <alpha-value>)',
+          neonGreen: 'rgb(var(--stage-neon-green) / <alpha-value>)',
         },
+      },
+      boxShadow: {
+        'glow-cyan': '0 0 32px -8px rgb(var(--stage-neon-cyan) / 0.45)',
+        'glow-cyan-sm': '0 0 18px -4px rgb(var(--stage-neon-cyan) / 0.28)',
+        'card-inset': 'inset 0 1px 0 0 rgb(255 255 255 / 0.06)',
       },
     },
   },

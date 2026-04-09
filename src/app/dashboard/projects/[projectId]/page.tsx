@@ -1,39 +1,44 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { getSession } from '@/lib/session';
+import { getCachedSession } from '@/lib/cached-session';
 import { prisma } from '@/lib/prisma';
 import { format } from 'date-fns';
 import { ArrowLeft, Calendar, Plus } from 'lucide-react';
+import { ProjectOwnerSection } from '@/components/ProjectOwnerSection';
 import { canEdit } from '@/lib/session';
-import { hasExtendedAccess, getViewerAssignedTourIds } from '@/lib/viewer-access';
+import { hasFullTourCatalogAccess, getViewerAssignedTourIds } from '@/lib/viewer-access';
 
 export default async function ProjectDetailPage({
   params,
 }: {
   params: Promise<{ projectId: string }>;
 }) {
-  const session = await getSession();
+  const session = await getCachedSession();
   if (!session?.user) redirect('/login');
   const { projectId } = await params;
   const role = (session.user as { role?: string }).role;
-  const extendedAccess = hasExtendedAccess(role);
-  const viewerTourIds = extendedAccess ? null : (session.user.id ? await getViewerAssignedTourIds(session.user.id) : []);
+  const fullCatalog = hasFullTourCatalogAccess(role);
+  const viewerTourIds = fullCatalog ? null : (session.user.id ? await getViewerAssignedTourIds(session.user.id) : []);
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     include: {
+      owner: { select: { id: true, name: true } },
       tours: {
         orderBy: { startDate: 'asc' },
-        include: { _count: { select: { dates: true } } },
+        include: {
+          _count: { select: { dates: true } },
+          manager: { select: { id: true, name: true } },
+        },
       },
     },
   });
   if (!project) redirect('/dashboard/projects');
 
-  const tours = extendedAccess
+  const tours = fullCatalog
     ? project.tours
     : project.tours.filter((t) => (viewerTourIds ?? []).includes(t.id));
-  if (!extendedAccess && tours.length === 0) redirect('/dashboard/projects');
+  if (!fullCatalog && tours.length === 0) redirect('/dashboard/projects');
 
   const allowEdit = canEdit(role);
 
@@ -41,17 +46,19 @@ export default async function ProjectDetailPage({
     <div className="w-full max-w-6xl mx-auto p-6 lg:p-8 pb-8">
       <Link
         href="/dashboard/projects"
-        className="inline-flex items-center gap-2 text-stage-muted hover:text-stage-fg mb-4"
+        className="inline-flex items-center gap-2 text-stage-muted hover:text-stage-neonCyan transition-colors mb-4"
       >
-        <ArrowLeft className="h-4 w-4" /> Artists
+        <ArrowLeft className="h-4 w-4" /> Projects
       </Link>
       <div className="mb-6">
         <h1 className="text-xl font-bold text-white">{project.name}</h1>
-        <p className="text-stage-muted text-sm mt-0.5">Tours</p>
+        <p className="text-stage-muted text-sm mt-0.5">Tours for this project</p>
       </div>
 
+      <ProjectOwnerSection projectId={projectId} initialOwner={project.owner} allowEdit={allowEdit} />
+
       {tours.length === 0 ? (
-        <div className="rounded-xl bg-stage-card border border-stage-border p-8 text-center text-stage-muted">
+        <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04] p-8 text-center text-stage-muted">
           <p>No tours yet.</p>
           {allowEdit && (
             <Link
@@ -64,7 +71,7 @@ export default async function ProjectDetailPage({
         </div>
       ) : (
         <>
-          <h2 className="text-sm font-semibold text-zinc-400 flex items-center gap-2 mb-3">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2 mb-3">
             <Calendar className="h-4 w-4" /> Tours
           </h2>
           <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -72,7 +79,7 @@ export default async function ProjectDetailPage({
               <li key={tour.id}>
                 <Link
                   href={`/dashboard/tours/${tour.id}`}
-                  className="flex justify-between p-4 rounded-lg bg-stage-card border border-stage-border hover:border-stage-accent/50 transition"
+                  className="flex justify-between p-4 rounded-lg bg-stage-card border border-stage-border hover:border-stage-neonCyan/40 transition"
                 >
                   <div>
                     <p className="font-medium text-white">{tour.name}</p>
@@ -87,6 +94,9 @@ export default async function ProjectDetailPage({
                               ? `${tour._count.dates} date${tour._count.dates === 1 ? '' : 's'}`
                               : 'No dates yet'}
                     </p>
+                    {tour.manager && (
+                      <p className="text-xs text-stage-muted mt-1">Tour owner: {tour.manager.name}</p>
+                    )}
                   </div>
                   <span className="text-stage-muted">→</span>
                 </Link>
@@ -96,7 +106,7 @@ export default async function ProjectDetailPage({
           {allowEdit && (
             <Link
               href={`/dashboard/projects/${projectId}/tours/new`}
-              className="flex items-center justify-center gap-2 mt-6 py-3 rounded-lg border border-dashed border-stage-border text-stage-muted hover:border-stage-accent/50 hover:text-stage-accent"
+              className="flex items-center justify-center gap-2 mt-6 py-3 rounded-lg border border-dashed border-stage-border text-stage-muted hover:border-stage-neonCyan/40 hover:text-stage-neonCyan"
             >
               <Plus className="h-4 w-4" /> Add tour
             </Link>

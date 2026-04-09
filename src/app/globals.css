@@ -6,38 +6,58 @@
 html,
 html.dark {
   color-scheme: dark;
-  --stage-page: 15 15 18;
-  --stage-surface: 15 15 18;
-  --stage-card: 24 24 28;
-  --stage-border: 42 42 48;
-  --stage-muted: 161 161 170;
+  /* Cool blue-slate base (lighter than neutral #0f0f12) */
+  --stage-page: 28 32 44;
+  --stage-surface: 28 32 44;
+  --stage-card: 36 41 56;
+  --stage-border: 55 62 82;
+  --stage-muted: 154 164 186;
   --stage-accent: 245 158 11;
   --stage-accent-hover: 217 119 6;
-  --stage-fg: 250 250 250;
+  --stage-fg: 248 250 252;
   --stage-accent-fg: 24 24 27;
-  --background: #0f0f12;
-  --foreground: #fafafa;
+  /* Day-sheet / “sonic” accents (tour date view) */
+  --stage-neon-cyan: 56 189 248;
+  --stage-violet: 147 197 253;
+  --stage-neon-green: 52 211 153;
+  --background: #1c2030;
+  --foreground: #f8fafc;
 }
 
 html.light {
   color-scheme: light;
-  --stage-page: 244 244 245;
-  --stage-surface: 244 244 245;
+  --stage-page: 241 245 252;
+  --stage-surface: 241 245 252;
   --stage-card: 255 255 255;
-  --stage-border: 228 228 231;
-  --stage-muted: 113 113 122;
+  --stage-border: 220 227 240;
+  --stage-muted: 100 116 139;
   --stage-accent: 234 88 12;
   --stage-accent-hover: 194 65 12;
-  --stage-fg: 24 24 27;
+  --stage-fg: 30 41 59;
   --stage-accent-fg: 24 24 27;
-  --background: #f4f4f5;
-  --foreground: #18181b;
+  --stage-neon-cyan: 2 132 199;
+  --stage-violet: 79 70 229;
+  --stage-neon-green: 5 150 105;
+  --background: #f1f5fc;
+  --foreground: #1e293b;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
   min-height: 100vh;
+}
+
+/* Tour date pages: subtle mesh behind content (tokens: --stage-neon-cyan, --stage-violet) */
+.tour-date-view {
+  background-color: rgb(var(--stage-surface));
+  background-image: radial-gradient(
+      ellipse 95% 65% at 50% -18%,
+      rgb(var(--stage-neon-cyan) / 0.16),
+      transparent 58%
+    ),
+    radial-gradient(ellipse 75% 55% at 100% 0%, rgb(var(--stage-violet) / 0.11), transparent 52%),
+    radial-gradient(ellipse 55% 45% at 0% 25%, rgb(var(--stage-violet) / 0.07), transparent 48%);
 }
 
 /* Primary body text tracks theme (most screens use text-white for this) */
@@ -89,6 +109,10 @@ input[type="time"]:focus {
   a[href="/dashboard"],
   button {
     display: none !important;
+  }
+  .tour-date-view {
+    background: none !important;
+    background-color: #fff !important;
   }
   body {
     background: white;

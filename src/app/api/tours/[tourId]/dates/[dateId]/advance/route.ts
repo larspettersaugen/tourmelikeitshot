@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import { canEditAdvance, canAccessAdvance } from '@/lib/session';
+import { requireTourDateReadAccess } from '@/lib/tour-date-access-api';
 
 export async function GET(
   _req: Request,
@@ -13,9 +14,22 @@ export async function GET(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { tourId, dateId } = await params;
+  const denied = await requireTourDateReadAccess(
+    session.user.id,
+    (session.user as { role?: string }).role,
+    tourId,
+    dateId
+  );
+  if (denied) return denied;
   const tourDate = await prisma.tourDate.findFirst({
     where: { id: dateId, tourId },
-    include: { advance: true },
+    include: {
+      advance: {
+        include: {
+          customFields: { orderBy: { sortOrder: 'asc' } },
+        },
+      },
+    },
   });
   if (!tourDate) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   const a = tourDate.advance;
@@ -32,6 +46,16 @@ export async function GET(
     logisticsCompromises: a?.logisticsCompromises ?? false,
     equipmentTransportDone: a?.equipmentTransportDone ?? false,
     equipmentTransportCompromises: a?.equipmentTransportCompromises ?? false,
+    customFields: (a?.customFields ?? []).map((c) => ({
+      id: c.id,
+      title: c.title,
+      body: c.body,
+      done: c.done,
+      compromises: c.compromises,
+      sortOrder: c.sortOrder,
+      createdAt: c.createdAt.toISOString(),
+      updatedAt: c.updatedAt.toISOString(),
+    })),
   });
 }
 
@@ -46,6 +70,8 @@ export async function PATCH(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { tourId, dateId } = await params;
+  const denied = await requireTourDateReadAccess(session.user.id, role, tourId, dateId);
+  if (denied) return denied;
   const tourDate = await prisma.tourDate.findFirst({
     where: { id: dateId, tourId },
     include: { advance: true },

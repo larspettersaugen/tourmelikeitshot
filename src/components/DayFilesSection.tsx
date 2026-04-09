@@ -33,11 +33,14 @@ export function DayFilesSection({
   dateId,
   files: initialFiles,
   allowEdit,
+  /** Extra labels for `advanceSection` keys (e.g. custom advance fields: `custom:&lt;id&gt;` → title). */
+  sectionLabelExtra = {},
 }: {
   tourId: string;
   dateId: string;
   files: AdvanceFile[];
   allowEdit: boolean;
+  sectionLabelExtra?: Record<string, string>;
 }) {
   const [files, setFiles] = useState<AdvanceFile[]>(initialFiles);
   const [uploading, setUploading] = useState(false);
@@ -124,7 +127,7 @@ export function DayFilesSection({
 
   return (
     <section>
-      <h3 className="text-sm font-semibold text-zinc-400 flex items-center gap-2 mb-2">
+      <h3 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2 mb-2">
         <FolderOpen className="h-4 w-4" /> Files
       </h3>
       <p className="text-xs text-stage-muted mb-2">All files for this date. Upload here or in the Advance tab.</p>
@@ -160,7 +163,9 @@ export function DayFilesSection({
                 <div className="flex items-center gap-2 shrink-0">
                   {f.advanceSection && (
                     <span className="text-xs text-stage-muted bg-stage-surface px-1.5 py-0.5 rounded">
-                      {SECTION_LABELS[f.advanceSection] ?? f.advanceSection}
+                      {SECTION_LABELS[f.advanceSection] ??
+                        sectionLabelExtra[f.advanceSection] ??
+                        f.advanceSection}
                     </span>
                   )}
                   {allowEdit && (

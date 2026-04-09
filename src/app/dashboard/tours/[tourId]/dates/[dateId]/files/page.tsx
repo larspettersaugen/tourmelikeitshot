@@ -1,33 +1,39 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { getSession } from '@/lib/session';
+import { getCachedSession } from '@/lib/cached-session';
 import { prisma } from '@/lib/prisma';
+import { getTourWithDatesOrdered } from '@/lib/cached-tour-dashboard';
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DateInfo } from '@/components/DateInfo';
 import { DateNavTabs } from '@/components/DateNavTabs';
 import { DayFilesSection } from '@/components/DayFilesSection';
-import { canEdit, canAccessAdvance, canEditAdvance } from '@/lib/session';
+import { canEdit, canAccessAdvance, canEditAdvance, canViewTasks } from '@/lib/session';
 import { isReadyForAdvanceComplete } from '@/lib/advance-complete';
+import { advanceSelectForComplete } from '@/lib/advance-for-complete';
+import { customAdvanceSectionKey } from '@/lib/advance-file-section';
+import {
+  cachedUserCanOpenTourDateDetail,
+  getCachedTourDateAccess,
+  adjacentOpenTourDates,
+} from '@/lib/tour-date-access';
 
 export default async function DateFilesPage({
   params,
 }: {
   params: Promise<{ tourId: string; dateId: string }>;
 }) {
-  const session = await getSession();
+  const session = await getCachedSession();
   if (!session?.user) redirect('/login');
   const { tourId, dateId } = await params;
 
-  const tour = await prisma.tour.findUnique({
-    where: { id: tourId },
-    include: { dates: { orderBy: { date: 'asc' } } },
-  });
-  if (!tour) redirect('/dashboard');
+  const role = (session.user as { role?: string }).role;
 
-  const selectedDate = tour.dates.find((d) => d.id === dateId);
-  if (!selectedDate) redirect(`/dashboard/tours/${tourId}`);
-
-  const [advanceFiles, contacts, travelingGroup, advanceForComplete, taskRowsForComplete] = await Promise.all([
+  const [tour, , advanceFiles, contacts, travelingGroup, advanceForComplete, customFieldLabels, taskRowsForComplete] =
+    await Promise.all([
+    getTourWithDatesOrdered(tourId),
+    cachedUserCanOpenTourDateDetail(session.user.id, role, tourId, dateId).then((ok) => {
+      if (!ok) redirect(`/dashboard/tours/${tourId}?noDateAccess=1`);
+    }),
     prisma.advanceFile.findMany({
       where: { tourDateId: dateId },
       orderBy: { createdAt: 'asc' },
@@ -40,20 +46,41 @@ export default async function DateFilesPage({
       where: { tourId },
       orderBy: { name: 'asc' },
     }),
-    prisma.advance.findUnique({ where: { tourDateId: dateId } }),
+    prisma.advance.findUnique({
+      where: { tourDateId: dateId },
+      select: advanceSelectForComplete,
+    }),
+    prisma.advanceCustomField.findMany({
+      where: { advance: { tourDateId: dateId } },
+      select: { id: true, title: true },
+      orderBy: { sortOrder: 'asc' },
+    }),
     prisma.tourDateTask.findMany({
       where: { tourDateId: dateId },
       select: { done: true },
     }),
   ]);
 
+  if (!tour) redirect('/dashboard');
+
+  const selectedDate = tour.dates.find((d) => d.id === dateId);
+  if (!selectedDate) redirect(`/dashboard/tours/${tourId}`);
+
+  const advanceSectionLabels: Record<string, string> = Object.fromEntries(
+    customFieldLabels.map((c) => [customAdvanceSectionKey(c.id), c.title])
+  );
+
   const sessionRole = (session.user as { role?: string }).role;
   const allowEdit = canEdit(sessionRole);
-  const advanceReady = isReadyForAdvanceComplete(advanceForComplete, taskRowsForComplete);
+  const advanceReady = isReadyForAdvanceComplete(
+    advanceForComplete,
+    canViewTasks(sessionRole) ? taskRowsForComplete : []
+  );
 
-  const currentIndex = tour.dates.findIndex((d) => d.id === dateId);
-  const prevDate = currentIndex > 0 ? tour.dates[currentIndex - 1] : null;
-  const nextDate = currentIndex >= 0 && currentIndex < tour.dates.length - 1 ? tour.dates[currentIndex + 1] : null;
+  const dateAccess = session.user.id
+    ? await getCachedTourDateAccess(session.user.id, role, tourId)
+    : { openAllDates: false, openDateIds: new Set<string>() };
+  const { prev: prevDate, next: nextDate } = adjacentOpenTourDates(tour.dates, dateId, dateAccess);
 
   const allowAdvanceAccess = canAccessAdvance(sessionRole);
   const files = allowAdvanceAccess
@@ -72,7 +99,7 @@ export default async function DateFilesPage({
       <div className="flex items-center justify-between gap-4 mb-4 print:hidden">
         <Link
           href={`/dashboard/tours/${tourId}`}
-          className="inline-flex items-center gap-2 text-stage-muted hover:text-stage-fg"
+          className="inline-flex items-center gap-2 text-stage-muted hover:text-stage-neonCyan transition-colors"
         >
           <ArrowLeft className="h-4 w-4" /> {tour.name}
         </Link>
@@ -81,7 +108,7 @@ export default async function DateFilesPage({
             {prevDate && (
               <Link
                 href={`/dashboard/tours/${tourId}/dates/${prevDate.id}/files`}
-                className="flex items-center gap-1.5 text-stage-muted hover:text-stage-fg transition text-sm"
+                className="flex items-center gap-1.5 text-stage-muted hover:text-stage-neonCyan transition-colors text-sm"
               >
                 <ChevronLeft className="h-4 w-4" /> Previous
               </Link>
@@ -89,7 +116,7 @@ export default async function DateFilesPage({
             {nextDate && (
               <Link
                 href={`/dashboard/tours/${tourId}/dates/${nextDate.id}/files`}
-                className="flex items-center gap-1.5 text-stage-muted hover:text-stage-fg transition text-sm"
+                className="flex items-center gap-1.5 text-stage-muted hover:text-stage-neonCyan transition-colors text-sm"
               >
                 Next <ChevronRight className="h-4 w-4" />
               </Link>
@@ -101,6 +128,8 @@ export default async function DateFilesPage({
       <DateInfo
         tourId={tourId}
         dateId={dateId}
+        dateName={selectedDate.name}
+        linkedVenueId={selectedDate.venueId}
         venueName={selectedDate.venueName}
         city={selectedDate.city}
         date={selectedDate.date.toISOString()}
@@ -127,14 +156,21 @@ export default async function DateFilesPage({
         hideAllTourMessage={sessionRole === 'viewer'}
       />
 
-      <DateNavTabs tourId={tourId} dateId={dateId} active="files" allowAdvance={allowAdvanceAccess} />
+      <DateNavTabs
+        tourId={tourId}
+        dateId={dateId}
+        active="files"
+        allowAdvance={allowAdvanceAccess}
+        showTasks={canViewTasks(sessionRole)}
+      />
 
-      <div className="rounded-xl bg-stage-card border border-stage-border p-6">
+      <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04] p-6">
         <DayFilesSection
           tourId={tourId}
           dateId={dateId}
           files={files}
           allowEdit={allowEdit}
+          sectionLabelExtra={advanceSectionLabels}
         />
       </div>
     </div>

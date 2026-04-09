@@ -10,11 +10,11 @@ export function DashboardLoadingSkeleton() {
       <div className="h-5 w-36 rounded-md bg-stage-surface" />
       <div className="h-10 max-w-md rounded-lg bg-stage-card border border-stage-border" />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <div className="h-28 rounded-xl bg-stage-card border border-stage-border" />
-        <div className="h-28 rounded-xl bg-stage-card border border-stage-border" />
-        <div className="h-28 rounded-xl bg-stage-card border border-stage-border sm:col-span-2 xl:col-span-1" />
+        <div className="h-28 rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04]" />
+        <div className="h-28 rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04]" />
+        <div className="h-28 rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04] sm:col-span-2 xl:col-span-1" />
       </div>
-      <div className="h-40 rounded-xl bg-stage-card border border-stage-border" />
+      <div className="h-40 rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04]" />
     </div>
   );
 }
@@ -31,14 +31,14 @@ export function TourDateLoadingSkeleton() {
         <div className="h-5 w-44 rounded-md bg-stage-surface" />
         <div className="h-5 w-28 rounded-md bg-stage-surface" />
       </div>
-      <div className="h-36 rounded-xl bg-stage-card border border-stage-border" />
+      <div className="h-36 rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04]" />
       <div className="flex flex-wrap gap-2">
         <div className="h-9 w-16 rounded-lg bg-stage-surface" />
         <div className="h-9 w-20 rounded-lg bg-stage-surface" />
         <div className="h-9 w-14 rounded-lg bg-stage-surface" />
         <div className="h-9 w-16 rounded-lg bg-stage-surface" />
       </div>
-      <div className="min-h-[240px] rounded-xl bg-stage-card border border-stage-border p-6">
+      <div className="min-h-[240px] rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04] p-6">
         <div className="h-6 w-32 rounded-md bg-stage-surface mb-4" />
         <div className="space-y-3">
           <div className="h-4 w-full rounded bg-stage-surface/80" />

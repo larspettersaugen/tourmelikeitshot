@@ -3,6 +3,12 @@ import { randomBytes } from 'crypto';
 import { getSession } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import { canEdit } from '@/lib/session';
+import {
+  parsePeopleAccessFlags,
+  peopleAccessSpecifiedInBody,
+  peopleRoleFromCheckboxes,
+  isSuperadminLinkedRole,
+} from '@/lib/person-linked-role';
 import { getPublicAppBaseUrlFromRequest } from '@/lib/public-app-url';
 
 export async function POST(
@@ -17,8 +23,9 @@ export async function POST(
   const { personId } = await params;
   if (!personId?.trim()) return NextResponse.json({ error: 'Person ID required' }, { status: 400 });
 
-  const body = await req.json().catch(() => ({}));
-  const { isPowerUser } = body;
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const accessInBody = peopleAccessSpecifiedInBody(body);
+  const access = parsePeopleAccessFlags(body);
 
   const person = await prisma.person.findUnique({
     where: { id: personId },
@@ -30,7 +37,7 @@ export async function POST(
   }
 
   const email = person.email.trim();
-  const userRole = isPowerUser ? 'power_user' : 'viewer';
+  const userRole = peopleRoleFromCheckboxes(access.isBookingAdmin, access.isPowerUser);
 
   let userId = person.userId;
 
@@ -53,10 +60,13 @@ export async function POST(
       },
     });
     if (existingUser) {
-      if (existingUser.role !== 'editor' && existingUser.role !== 'admin') {
+      if (!isSuperadminLinkedRole(existingUser.role)) {
         await prisma.user.update({
           where: { id: existingUser.id },
-          data: { name: person.name || existingUser.name, role: userRole },
+          data: {
+            name: person.name || existingUser.name,
+            ...(accessInBody ? { role: userRole } : {}),
+          },
         });
       }
     }
@@ -65,12 +75,12 @@ export async function POST(
       where: { id: personId },
       data: { userId },
     });
-  } else if (person.user && (person.user.role === 'editor' || person.user.role === 'admin')) {
-    // Masters keep their role; don't change
-  } else if (person.user && isPowerUser !== undefined) {
+  } else if (person.user && isSuperadminLinkedRole(person.user.role)) {
+    // Platform superadmin — role unchanged from invite
+  } else if (person.user && accessInBody) {
     await prisma.user.update({
       where: { id: person.user.id },
-      data: { role: isPowerUser ? 'power_user' : 'viewer' },
+      data: { role: userRole },
     });
   }
 

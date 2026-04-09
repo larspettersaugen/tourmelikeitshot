@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
-import { canEditAdvance } from '@/lib/session';
+import { canEditAdvance, canViewTasks } from '@/lib/session';
+import { requireTourDateReadAccess } from '@/lib/tour-date-access-api';
 
 export async function PATCH(
   req: Request,
@@ -9,10 +10,13 @@ export async function PATCH(
 ) {
   const session = await getSession();
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!canEditAdvance((session.user as { role?: string }).role)) {
+  const role = (session.user as { role?: string }).role;
+  if (!canViewTasks(role) || !canEditAdvance(role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { tourId, dateId, taskId } = await params;
+  const denied = await requireTourDateReadAccess(session.user.id, role, tourId, dateId);
+  if (denied) return denied;
   const task = await prisma.tourDateTask.findFirst({
     where: { id: taskId, tourDateId: dateId },
   });
@@ -41,10 +45,13 @@ export async function DELETE(
 ) {
   const session = await getSession();
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!canEditAdvance((session.user as { role?: string }).role)) {
+  const roleDel = (session.user as { role?: string }).role;
+  if (!canViewTasks(roleDel) || !canEditAdvance(roleDel)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { tourId, dateId, taskId } = await params;
+  const deniedDel = await requireTourDateReadAccess(session.user.id, roleDel, tourId, dateId);
+  if (deniedDel) return deniedDel;
   const task = await prisma.tourDateTask.findFirst({
     where: { id: taskId, tourDateId: dateId },
   });

@@ -4,6 +4,7 @@
  * Run: npx tsx prisma/seed-chris-holsten-people.ts
  */
 import { PrismaClient } from '@prisma/client';
+import { composePersonName } from '../src/lib/person-name';
 
 const prisma = new PrismaClient();
 
@@ -53,11 +54,14 @@ async function main() {
   console.log(`Deleted ${deleted.count} people.`);
 
   for (const p of PEOPLE) {
-    const name = `${p.firstName} ${p.lastName}`.trim();
+    const name = composePersonName(p.firstName, null, p.lastName);
     const type = mapRoleToType(p.role);
     const birthdate = parseBirthdate(p.birthdate);
     await prisma.person.create({
       data: {
+        firstName: p.firstName,
+        middleName: null,
+        lastName: p.lastName,
         name,
         type,
         birthdate,

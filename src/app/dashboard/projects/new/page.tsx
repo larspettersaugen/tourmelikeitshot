@@ -30,13 +30,13 @@ export default function NewProjectPage() {
     <div className="w-full max-w-2xl mx-auto p-6 lg:p-8 pb-8">
       <Link
         href="/dashboard/projects"
-        className="inline-flex items-center gap-2 text-stage-muted hover:text-stage-fg mb-6"
+        className="inline-flex items-center gap-2 text-stage-muted hover:text-stage-neonCyan transition-colors mb-6"
       >
-        <ArrowLeft className="h-4 w-4" /> Artists
+        <ArrowLeft className="h-4 w-4" /> Projects
       </Link>
       <h1 className="text-xl font-bold text-white mb-6">New project</h1>
       <p className="text-stage-muted text-sm mb-6">
-        Add an artist or project name, e.g. &quot;Chris Holsten&quot;
+        Add a project name, e.g. &quot;Chris Holsten&quot;
       </p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

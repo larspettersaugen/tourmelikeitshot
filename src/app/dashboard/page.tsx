@@ -1,21 +1,23 @@
 import Link from 'next/link';
-import { getSession } from '@/lib/session';
+import { getCachedSession } from '@/lib/cached-session';
 import { prisma } from '@/lib/prisma';
 import { ChevronRight, Calendar, FolderOpen, MapPin } from 'lucide-react';
 import { ShowStatusBadge } from '@/components/ShowStatusBadge';
 import { format } from 'date-fns';
-import { hasExtendedAccess, getViewerAssignedTourIds } from '@/lib/viewer-access';
+import { hasFullTourCatalogAccess, getViewerAssignedTourIds } from '@/lib/viewer-access';
+import { tourDateDisplayName } from '@/lib/tour-date-display';
+import { getTourDateOpenDateIdsForUser, canOpenDateId } from '@/lib/tour-date-access';
 
 export default async function DashboardPage() {
-  const session = await getSession();
+  const session = await getCachedSession();
   const role = (session?.user as { role?: string })?.role;
-  const extendedAccess = hasExtendedAccess(role);
-  const viewerTourIds = extendedAccess ? null : session?.user?.id
+  const fullCatalog = hasFullTourCatalogAccess(role);
+  const viewerTourIds = fullCatalog ? null : session?.user?.id
     ? await getViewerAssignedTourIds(session.user.id)
     : [];
 
   const now = new Date();
-  const tourWhere = extendedAccess
+  const tourWhere = fullCatalog
     ? {
         projectId: { not: null },
         OR: [
@@ -26,55 +28,68 @@ export default async function DashboardPage() {
       }
     : { id: { in: viewerTourIds ?? [] } };
 
-  // Sequential queries avoid grabbing multiple pool connections at once (helps Neon + dev HMR).
-  const allProjects = await prisma.project.findMany({
-    orderBy: { updatedAt: 'desc' },
-    include: { _count: { select: { tours: true } }, tours: { select: { id: true } } },
-  });
-  const tours = await prisma.tour.findMany({
-    where: tourWhere,
-    orderBy: [{ startDate: 'asc' }, { updatedAt: 'desc' }],
-    include: {
-      project: { select: { id: true, name: true } },
-      dates: {
-        where: { date: { gte: now } },
-        orderBy: { date: 'asc' },
-        take: 1,
+  const [allProjects, tours, upcomingDates] = await Promise.all([
+    prisma.project.findMany({
+      orderBy: { name: 'asc' },
+      include: { _count: { select: { tours: true } }, tours: { select: { id: true } } },
+    }),
+    prisma.tour.findMany({
+      where: tourWhere,
+      orderBy: [{ startDate: 'asc' }, { updatedAt: 'desc' }],
+      include: {
+        project: { select: { id: true, name: true } },
+        dates: {
+          where: { date: { gte: now } },
+          orderBy: { date: 'asc' },
+          take: 1,
+        },
+        _count: { select: { dates: true } },
       },
-      _count: { select: { dates: true } },
-    },
-  });
-  const upcomingDates = await prisma.tourDate.findMany({
-    where: { date: { gte: new Date() }, tourId: extendedAccess ? undefined : { in: viewerTourIds ?? [] } },
-    orderBy: { date: 'asc' },
-    take: 7,
-    include: {
-      tour: {
-        select: { id: true, name: true, project: { select: { id: true, name: true } } },
+    }),
+    prisma.tourDate.findMany({
+      where: { date: { gte: new Date() }, tourId: fullCatalog ? undefined : { in: viewerTourIds ?? [] } },
+      orderBy: { date: 'asc' },
+      take: 4,
+      include: {
+        tour: {
+          select: { id: true, name: true, project: { select: { id: true, name: true } } },
+        },
       },
-    },
-  });
+    }),
+  ]);
 
-  const projects = extendedAccess
+  const projects = fullCatalog
     ? allProjects
     : allProjects.filter((p) => p.tours.some((t) => (viewerTourIds ?? []).includes(t.id)));
+
+  const dateAccessByTour = new Map<
+    string,
+    Awaited<ReturnType<typeof getTourDateOpenDateIdsForUser>>
+  >();
+  if (session?.user?.id) {
+    for (const d of upcomingDates) {
+      if (!dateAccessByTour.has(d.tourId)) {
+        dateAccessByTour.set(d.tourId, await getTourDateOpenDateIdsForUser(session.user.id, role, d.tourId));
+      }
+    }
+  }
 
   return (
     <div className="w-full max-w-6xl mx-auto p-6 lg:p-8 pb-8">
       <h1 className="text-xl font-bold text-white mb-6">Dashboard</h1>
 
-      {/* Artists (projects) */}
+      {/* Projects */}
       {projects.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-sm font-semibold text-zinc-400 flex items-center gap-2 mb-3">
-            <FolderOpen className="h-4 w-4" /> Artists
+          <h2 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2 mb-3">
+            <FolderOpen className="h-4 w-4" /> Projects
           </h2>
           <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {projects.map((project) => (
               <li key={project.id}>
                 <Link
                   href={`/dashboard/projects/${project.id}`}
-                  className="flex flex-col justify-between p-5 rounded-lg bg-stage-card border border-stage-border hover:border-stage-accent/50 transition min-h-[100px]"
+                  className="flex flex-col justify-between p-5 rounded-lg bg-stage-card border border-stage-border hover:border-stage-neonCyan/40 transition min-h-[100px]"
                 >
                   <div>
                     <p className="font-medium text-white">{project.name}</p>
@@ -95,20 +110,23 @@ export default async function DashboardPage() {
       {/* Upcoming dates */}
       {upcomingDates.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-sm font-semibold text-zinc-400 flex items-center gap-2 mb-3">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2 mb-3">
             <Calendar className="h-4 w-4" /> Upcoming shows
           </h2>
           <ul className="space-y-2">
-            {upcomingDates.map((d) => (
-              <li key={d.id}>
-                <Link
-                  href={`/dashboard/tours/${d.tourId}/dates/${d.id}`}
-                  className="flex items-center justify-between p-4 rounded-lg bg-stage-card border border-stage-border hover:border-stage-accent/50 transition"
-                >
+            {upcomingDates.map((d) => {
+              const acc = dateAccessByTour.get(d.tourId);
+              const canOpen = acc ? canOpenDateId(acc, d.id) : false;
+              const inner = (
+                <>
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-white">
-                        {d.venueName}, {d.city}
+                        {tourDateDisplayName({
+                          name: d.name,
+                          venueName: d.venueName,
+                          city: d.city,
+                        })}
                       </p>
                       <ShowStatusBadge status={d.status} />
                     </div>
@@ -116,21 +134,40 @@ export default async function DashboardPage() {
                       {format(new Date(d.date), 'EEEE, MMM d')} · {d.tour.project?.name ?? d.tour.name} · {d.tour.name}
                     </p>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-stage-muted shrink-0" />
-                </Link>
-              </li>
-            ))}
+                  <span className="text-stage-muted shrink-0">{canOpen ? <ChevronRight className="h-5 w-5" /> : '—'}</span>
+                </>
+              );
+              return (
+                <li key={d.id}>
+                  {canOpen ? (
+                    <Link
+                      href={`/dashboard/tours/${d.tourId}/dates/${d.id}`}
+                      className="flex items-center justify-between p-4 rounded-lg bg-stage-card border border-stage-border hover:border-stage-neonCyan/40 transition"
+                    >
+                      {inner}
+                    </Link>
+                  ) : (
+                    <div
+                      className="flex items-center justify-between p-4 rounded-lg bg-stage-card border border-stage-border opacity-80 cursor-not-allowed"
+                      title="You are not assigned to this date. Open the tour to see it on the calendar."
+                    >
+                      {inner}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
 
       {/* Active tours */}
       <section>
-        <h2 className="text-sm font-semibold text-zinc-400 flex items-center gap-2 mb-3">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2 mb-3">
           <MapPin className="h-4 w-4" /> Active tours
         </h2>
         {tours.length === 0 ? (
-          <div className="rounded-xl bg-stage-card border border-stage-border p-8 text-center text-stage-muted">
+          <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04] p-8 text-center text-stage-muted">
             <p>No tours yet.</p>
           </div>
         ) : (
@@ -139,7 +176,7 @@ export default async function DashboardPage() {
               <li key={tour.id}>
                 <Link
                   href={`/dashboard/tours/${tour.id}`}
-                  className="flex flex-col justify-between p-5 rounded-lg bg-stage-card border border-stage-border hover:border-stage-accent/50 transition min-h-[100px]"
+                  className="flex flex-col justify-between p-5 rounded-lg bg-stage-card border border-stage-border hover:border-stage-neonCyan/40 transition min-h-[100px]"
                 >
                   <div>
                     <p className="font-medium text-white">{tour.name}</p>

@@ -18,6 +18,7 @@ function LoginForm() {
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const fromInvite = searchParams.get('fromInvite') === '1';
   const passwordResetOk = searchParams.get('reset') === '1';
+  const noProfile = searchParams.get('error') === 'no-profile';
   const supabase = createClient();
 
   useEffect(() => {
@@ -67,6 +68,15 @@ function LoginForm() {
       <div className="w-full max-w-sm">
         <h1 className="text-2xl font-bold text-center mb-2 text-white">{"Tour Me Like It's Hot"}</h1>
         <p className="text-stage-muted text-center text-sm mb-8">Sign in to view your tour</p>
+        {noProfile && (
+          <p className="text-sm text-amber-400 text-center mb-6 -mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+            No profile found for your email. Ask your tour administrator to add you, or{' '}
+            <Link href="/signup" className="underline underline-offset-2 hover:text-amber-300">
+              set up your account
+            </Link>{' '}
+            if you&apos;ve been added already.
+          </p>
+        )}
         {fromInvite && (
           <p className="text-sm text-zinc-400 text-center mb-6 -mt-4">
             You already have a profile—sign in with your existing password.
@@ -150,6 +160,15 @@ function LoginForm() {
             </button>
           </>
         )}
+        <p className="mt-6 text-center text-sm text-stage-muted">
+          Don&apos;t have an account?{' '}
+          <Link
+            href="/signup"
+            className="text-stage-accent hover:underline underline-offset-2"
+          >
+            Set up your account
+          </Link>
+        </p>
       </div>
     </main>
   );

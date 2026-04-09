@@ -71,9 +71,11 @@ export function TravelSection({
 
   return (
     <section id="travel" className="scroll-mt-24">
-      <div className="rounded-xl bg-stage-card border border-stage-border overflow-hidden">
+      <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 overflow-hidden shadow-card-inset ring-1 ring-white/[0.04]">
         <div className="p-4 border-b border-stage-border">
-          <h2 className="text-sm font-semibold text-zinc-400 flex items-center gap-2 mb-3">Travel</h2>
+          <h2 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2 mb-3">
+            Travel
+          </h2>
           <div className="flex gap-1 p-1 rounded-lg bg-stage-surface/50 border border-stage-border">
             {subTabs.map(({ id, label, icon: Icon }) => (
               <button

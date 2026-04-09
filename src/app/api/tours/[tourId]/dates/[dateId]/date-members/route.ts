@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import { canEdit } from '@/lib/session';
+import { requireTourDateReadAccess } from '@/lib/tour-date-access-api';
 
 export async function GET(
   _req: Request,
@@ -10,6 +11,13 @@ export async function GET(
   const session = await getSession();
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { tourId, dateId } = await params;
+  const denied = await requireTourDateReadAccess(
+    session.user.id,
+    (session.user as { role?: string }).role,
+    tourId,
+    dateId
+  );
+  if (denied) return denied;
 
   const tourDate = await prisma.tourDate.findFirst({
     where: { id: dateId, tourId },

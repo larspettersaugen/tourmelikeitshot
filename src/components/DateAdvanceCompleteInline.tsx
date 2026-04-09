@@ -31,7 +31,7 @@ export function DateAdvanceCompleteInline({
   const title = advanceComplete
     ? 'Uncheck to clear advance complete (removes green light from tour list).'
     : !ready
-      ? 'All four advance sections must be Done and every task completed first.'
+      ? 'Every advance section must be Done and every task completed first.'
       : 'Check to mark advance complete for this date.';
 
   async function setComplete(next: boolean) {

@@ -5,10 +5,10 @@ import { canEditAdvance, canAccessAdvance } from '@/lib/session';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
+import { requireTourDateReadAccess } from '@/lib/tour-date-access-api';
+import { normalizeAdvanceFileSection } from '@/lib/advance-file-section';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
-
-const ADVANCE_SECTIONS = ['technical', 'rider', 'logistics', 'equipmentTransport'] as const;
 
 async function ensureUploadDir() {
   await fs.mkdir(UPLOAD_DIR, { recursive: true });
@@ -24,6 +24,13 @@ export async function GET(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { tourId, dateId } = await params;
+  const denied = await requireTourDateReadAccess(
+    session.user.id,
+    (session.user as { role?: string }).role,
+    tourId,
+    dateId
+  );
+  if (denied) return denied;
   const tourDate = await prisma.tourDate.findFirst({
     where: { id: dateId, tourId },
     include: { advanceFiles: { orderBy: { createdAt: 'asc' } } },
@@ -51,6 +58,13 @@ export async function POST(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { tourId, dateId } = await params;
+  const denied = await requireTourDateReadAccess(
+    session.user.id,
+    (session.user as { role?: string }).role,
+    tourId,
+    dateId
+  );
+  if (denied) return denied;
   const tourDate = await prisma.tourDate.findFirst({ where: { id: dateId, tourId } });
   if (!tourDate) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
@@ -62,10 +76,7 @@ export async function POST(
     return NextResponse.json({ error: 'No file provided' }, { status: 400 });
   }
 
-  const section =
-    advanceSection && ADVANCE_SECTIONS.includes(advanceSection as (typeof ADVANCE_SECTIONS)[number])
-      ? advanceSection
-      : null;
+  const section = await normalizeAdvanceFileSection(advanceSection, dateId);
 
   const ext = path.extname(file.name) || '';
   const storedName = `${crypto.randomBytes(16).toString('hex')}${ext}`;

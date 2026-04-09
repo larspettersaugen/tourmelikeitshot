@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
+import { hasFullTourCatalogAccess } from '@/lib/viewer-access';
 
 export async function GET(req: Request, { params }: { params: Promise<{ tourId: string }> }) {
   const session = await getSession();
@@ -28,12 +29,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ tourId:
   const session = await getSession();
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const role = (session.user as { role?: string }).role;
-  if (role !== 'admin' && role !== 'editor') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!hasFullTourCatalogAccess(role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { tourId } = await params;
   const tour = await prisma.tour.findUnique({ where: { id: tourId } });
   if (!tour) return NextResponse.json({ error: 'Tour not found' }, { status: 404 });
   const body = await req.json();
-  const { name, role: contactRole, phone, email, notes, tourDateId, personId, venueContactId: bodyVenueContactId } = body;
+  const {
+    name,
+    role: contactRole,
+    phone,
+    email,
+    notes,
+    tourDateId,
+    personId,
+    venueContactId: bodyVenueContactId,
+    venueId: newVenueContactVenueId,
+  } = body;
   if (!name || !contactRole) return NextResponse.json({ error: 'name, role required' }, { status: 400 });
   const nameTrim = typeof name === 'string' ? name.trim() : String(name).trim();
   const roleTrim = typeof contactRole === 'string' ? contactRole.trim() : String(contactRole).trim();
@@ -41,6 +52,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ tourId:
   const emailNorm = typeof email === 'string' && email.trim() ? email.trim() : null;
   const notesNorm = typeof notes === 'string' && notes.trim() ? notes.trim() : null;
   const dateId = tourDateId || null;
+
+  let resolvedVenueContactVenueId: string | null | undefined;
+  if (newVenueContactVenueId != null && String(newVenueContactVenueId).trim()) {
+    const v = await prisma.venue.findUnique({ where: { id: String(newVenueContactVenueId).trim() } });
+    if (!v) return NextResponse.json({ error: 'Venue not found' }, { status: 400 });
+    resolvedVenueContactVenueId = v.id;
+  }
 
   let resolvedVenueContactId: string | undefined;
 
@@ -72,6 +90,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ tourId:
           phone: phoneNorm,
           email: emailNorm,
           notes: notesNorm,
+          venueId: resolvedVenueContactVenueId ?? null,
         },
       });
       resolvedVenueContactId = created.id;

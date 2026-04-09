@@ -7,6 +7,7 @@ import {
   BETA_PERSON_TYPES,
   type BetaPersonType,
 } from '@/lib/beta-join';
+import { composePersonName, splitLegacyName } from '@/lib/person-name';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -93,9 +94,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
           role: 'viewer',
         },
       });
+      const sp = splitLegacyName(name);
       await tx.person.create({
         data: {
-          name,
+          firstName: sp.firstName,
+          middleName: sp.middleName,
+          lastName: sp.lastName,
+          name: composePersonName(sp.firstName, sp.middleName, sp.lastName),
           type,
           email,
           userId: user.id,

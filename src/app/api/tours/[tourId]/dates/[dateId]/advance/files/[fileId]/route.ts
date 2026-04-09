@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { canEditAdvance, canAccessAdvance } from '@/lib/session';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import { requireTourDateReadAccess } from '@/lib/tour-date-access-api';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
 
@@ -17,6 +18,13 @@ export async function DELETE(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { tourId, dateId, fileId } = await params;
+  const denied = await requireTourDateReadAccess(
+    session.user.id,
+    (session.user as { role?: string }).role,
+    tourId,
+    dateId
+  );
+  if (denied) return denied;
   const file = await prisma.advanceFile.findFirst({
     where: { id: fileId, tourDateId: dateId },
   });
@@ -44,6 +52,13 @@ export async function GET(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { tourId, dateId, fileId } = await params;
+  const denied = await requireTourDateReadAccess(
+    session.user.id,
+    (session.user as { role?: string }).role,
+    tourId,
+    dateId
+  );
+  if (denied) return denied;
   const file = await prisma.advanceFile.findFirst({
     where: { id: fileId, tourDateId: dateId },
   });

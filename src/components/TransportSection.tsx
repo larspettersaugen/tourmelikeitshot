@@ -4,6 +4,7 @@ import { Car, Plus, Phone, Mail, ChevronDown, ChevronUp, Users } from 'lucide-re
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { shortPassengerLabels } from '@/lib/short-passenger-labels';
 
 type TransportPassenger = {
   id: string;
@@ -151,10 +152,10 @@ export function TransportSection({
 
   return (
     <section>
-      <h3 className="text-sm font-semibold text-zinc-400 flex items-center gap-2 mb-3">
+      <h3 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2 mb-3">
         <Car className="h-4 w-4" /> Ground transport
       </h3>
-      <div className="rounded-xl bg-stage-card border border-stage-border overflow-hidden">
+      <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 overflow-hidden ring-1 ring-white/[0.04]">
         {items.length === 0 && !adding ? (
           <div className="p-6 text-center text-stage-muted text-sm">No transport</div>
         ) : (
@@ -164,6 +165,7 @@ export function TransportSection({
               const onThisTransport = new Set(item.passengers.map((p) => p.travelGroupMemberId));
               const availableToAdd = travelingGroup.filter((m) => !onThisTransport.has(m.id));
               const isAdding = addingToId === item.id;
+              const transportPassengerLabels = shortPassengerLabels(item.passengers.map((p) => p.name));
               return (
                 <li key={item.id} className="p-4">
                   <div className="flex items-start justify-between gap-2">
@@ -224,10 +226,10 @@ export function TransportSection({
                       </div>
                       {item.passengers.length > 0 ? (
                         <ul className="space-y-2">
-                          {item.passengers.map((p) => (
+                          {item.passengers.map((p, idx) => (
                             <li key={p.id} className="flex items-center justify-between gap-2">
                               <span className="text-sm text-white">
-                                {p.name}
+                                {transportPassengerLabels[idx] ?? p.name}
                                 {p.role && <span className="text-stage-muted"> ({p.role})</span>}
                               </span>
                             </li>

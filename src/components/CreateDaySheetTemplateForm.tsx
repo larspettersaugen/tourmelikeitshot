@@ -200,7 +200,7 @@ export function CreateDaySheetTemplateForm({
   }
 
   return (
-    <div className="space-y-4 p-4 rounded-xl bg-stage-card border border-stage-border">
+    <div className="space-y-4 p-4 rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04]">
       <form
         id="template-form"
         onSubmit={handleSubmit}

@@ -90,7 +90,7 @@ export function TourDayView({
     <div className="grid gap-8 xl:grid-cols-2 xl:gap-x-12 xl:items-start">
       <section id="schedule" className="scroll-mt-24 space-y-6">
         <div className="hidden print:block mb-4 pb-4 border-b border-stage-border">
-          <h2 className="text-sm font-semibold text-zinc-400 mb-2">Day notes</h2>
+          <h2 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan mb-2">Day notes</h2>
           <p className="text-sm whitespace-pre-wrap">{notes || '—'}</p>
         </div>
         <ScheduleSection
@@ -106,7 +106,9 @@ export function TourDayView({
       </section>
       <section id="travelling" className="scroll-mt-24 space-y-6 print:hidden">
         <DayNotesSection tourId={tourId} dateId={dateId} notes={notes} allowEdit={allowEdit} />
-        <h2 className="text-sm font-semibold text-zinc-400 flex items-center gap-2 mb-3">Travelling</h2>
+        <h2 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2 mb-3">
+          Travelling
+        </h2>
         <TravelSection
           tourId={tourId}
           dateId={dateId}

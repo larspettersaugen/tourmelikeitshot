@@ -20,8 +20,8 @@ async function main() {
   });
 
   const devUsers = [
-    { email: 'admin@tour.local', password: 'tour1234', name: 'Admin', role: 'admin' },
-    { email: 'editor@tour.local', password: 'editor123edit', name: 'Editor', role: 'editor' },
+    { email: 'admin@tour.local', password: 'tour1234', name: 'Superadmin', role: 'superadmin' },
+    { email: 'editor@tour.local', password: 'editor123edit', name: 'Booking admin', role: 'admin' },
     { email: 'viewer@tour.local', password: 'viewer123view', name: 'Viewer', role: 'viewer' },
   ];
 
@@ -43,7 +43,7 @@ async function main() {
     });
   }
 
-  console.log('Seed done (dev users). Login: admin@tour.local / tour1234 (see docs/DEV_ACCOUNTS.md)');
+  console.log('Seed done (dev users). Login: admin@tour.local / tour1234 — superadmin (see docs/DEV_ACCOUNTS.md)');
 }
 
 main()

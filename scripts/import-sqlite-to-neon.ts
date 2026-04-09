@@ -176,11 +176,17 @@ async function main(): Promise<void> {
   }
 
   console.log('Importing Person…');
+  const { composePersonName, splitLegacyName } = await import('../src/lib/person-name');
   for (const r of allRows(sqlite, 'Person')) {
+    const full = str(r.name);
+    const sp = splitLegacyName(full);
     await prisma.person.create({
       data: {
         id: str(r.id),
-        name: str(r.name),
+        firstName: sp.firstName,
+        middleName: sp.middleName,
+        lastName: sp.lastName,
+        name: composePersonName(sp.firstName, sp.middleName, sp.lastName),
         type: str(r.type),
         birthdate: optDt(r.birthdate),
         phone: optStr(r.phone),

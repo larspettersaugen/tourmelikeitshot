@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation';
-import { getSession } from '@/lib/session';
-import { prisma } from '@/lib/prisma';
-import { hasExtendedAccess, getViewerAssignedTourIds } from '@/lib/viewer-access';
+import { getCachedSession } from '@/lib/cached-session';
+import { getTourWithDatesOrdered } from '@/lib/cached-tour-dashboard';
+import { canBypassTourAssignment, getViewerAssignedTourIds } from '@/lib/viewer-access';
+import { getCachedTourDateAccess, canOpenDateId } from '@/lib/tour-date-access';
 import { TourDatesSidebar } from '@/components/TourDatesSidebar';
+import { tourDateDisplayName } from '@/lib/tour-date-display';
 
 export default async function TourLayout({
   children,
@@ -11,30 +13,37 @@ export default async function TourLayout({
   children: React.ReactNode;
   params: Promise<{ tourId: string }>;
 }) {
-  const session = await getSession();
+  const session = await getCachedSession();
   const { tourId } = await params;
   const role = (session?.user as { role?: string })?.role;
-  const extendedAccess = hasExtendedAccess(role);
-  if (!extendedAccess && session?.user?.id) {
-    const viewerTourIds = await getViewerAssignedTourIds(session.user.id);
-    if (!viewerTourIds.includes(tourId)) redirect('/dashboard/tours');
-  }
-  const tour = await prisma.tour.findUnique({
-    where: { id: tourId },
-    include: { dates: { orderBy: { date: 'asc' } } },
-  });
+  const bypassAssignment = canBypassTourAssignment(role);
+
+  const [tour] = await Promise.all([
+    getTourWithDatesOrdered(tourId),
+    bypassAssignment || !session?.user?.id
+      ? Promise.resolve()
+      : getViewerAssignedTourIds(session.user.id).then((ids) => {
+          if (!ids.includes(tourId)) redirect('/dashboard/tours');
+        }),
+  ]);
   if (!tour) redirect('/dashboard/tours');
 
+  const dateAccess = session?.user?.id
+    ? await getCachedTourDateAccess(session.user.id, role, tourId)
+    : { openAllDates: false, openDateIds: new Set<string>() };
+
   const dates = tour.dates.map((d) => ({
-    id: d.id,
-    venueName: d.venueName,
-    city: d.city,
-    date: d.date.toISOString(),
-    endDate: d.endDate?.toISOString() ?? null,
-    kind: d.kind,
-    address: d.address,
-    advanceComplete: d.advanceComplete,
-  }));
+      id: d.id,
+      venueName: d.venueName,
+      city: d.city,
+      date: d.date.toISOString(),
+      endDate: d.endDate?.toISOString() ?? null,
+      kind: d.kind,
+      address: d.address,
+      advanceComplete: d.advanceComplete,
+      label: tourDateDisplayName({ name: d.name, venueName: d.venueName, city: d.city }),
+      canOpenDetail: canOpenDateId(dateAccess, d.id),
+    }));
 
   return (
     <>

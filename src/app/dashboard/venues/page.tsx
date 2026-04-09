@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation';
-import { getSession } from '@/lib/session';
+import { getCachedSession } from '@/lib/cached-session';
 import { prisma } from '@/lib/prisma';
 import { VenuesContent } from '@/components/VenuesContent';
 import { canEdit } from '@/lib/session';
 
 export default async function VenuesPage() {
-  const session = await getSession();
+  const session = await getCachedSession();
   if (!session?.user) redirect('/login');
   if ((session.user as { role?: string }).role === 'viewer') redirect('/dashboard');
 
@@ -13,10 +13,15 @@ export default async function VenuesPage() {
     orderBy: [{ city: 'asc' }, { name: 'asc' }],
     select: {
       id: true,
+      category: true,
       name: true,
       city: true,
       address: true,
+      capacity: true,
       notes: true,
+      loadInNotes: true,
+      cateringNotes: true,
+      accessNotes: true,
     },
   });
 

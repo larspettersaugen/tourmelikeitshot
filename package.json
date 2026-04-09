@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "npx nodemon",
     "dev:simple": "prisma generate && next dev -p 3000",
-    "dev:clean": "rm -rf .next && npm run dev",
+    "dev:clean": "npm run dev:kill && rm -rf .next && npm run dev",
     "dev:kill": "lsof -ti:3000 2>/dev/null | xargs kill -9 2>/dev/null; lsof -ti:3001 2>/dev/null | xargs kill -9 2>/dev/null; lsof -ti:8080 2>/dev/null | xargs kill -9 2>/dev/null; echo Ports cleared",
     "build": "next build --webpack",
     "start": "next start",

@@ -48,16 +48,30 @@ const PEOPLE = [
   { role: 'Foto/Film', firstName: 'Hedda', lastName: 'Mikkelborg', phone: '', email: '', address: '', birthdate: '' },
 ];
 
+function composePersonName(first, middle, last) {
+  const parts = [];
+  const f = (first || '').trim();
+  const m = middle && String(middle).trim();
+  const l = (last || '').trim();
+  if (f) parts.push(f);
+  if (m) parts.push(m);
+  if (l) parts.push(l);
+  return parts.join(' ');
+}
+
 async function main() {
   const deleted = await prisma.person.deleteMany({});
   console.log('Deleted', deleted.count, 'people.');
 
   for (const p of PEOPLE) {
-    const name = `${p.firstName} ${p.lastName}`.trim();
+    const name = composePersonName(p.firstName, null, p.lastName);
     const type = mapRoleToType(p.role);
     const birthdate = parseBirthdate(p.birthdate);
     await prisma.person.create({
       data: {
+        firstName: p.firstName,
+        middleName: null,
+        lastName: p.lastName,
         name,
         type,
         birthdate,

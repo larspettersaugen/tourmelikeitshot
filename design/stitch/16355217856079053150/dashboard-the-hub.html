@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sonic Architecture - Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Manrope:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary-dim": "#5bf083",
+              "on-primary-container": "#004d57",
+              "on-secondary-container": "#e9cdff",
+              "tertiary-fixed-dim": "#5bf083",
+              "surface-dim": "#0c0e12",
+              "primary-dim": "#00d4ec",
+              "on-tertiary-container": "#005f28",
+              "inverse-primary": "#006976",
+              "on-surface": "#f6f6fc",
+              "on-error": "#490006",
+              "on-tertiary-fixed": "#004a1d",
+              "primary": "#81ecff",
+              "on-secondary": "#33005b",
+              "secondary-fixed": "#e5c6ff",
+              "on-error-container": "#ffa8a3",
+              "surface-container-lowest": "#000000",
+              "inverse-surface": "#f9f9ff",
+              "primary-fixed-dim": "#00d4ec",
+              "surface-tint": "#81ecff",
+              "on-primary": "#005762",
+              "on-tertiary-fixed-variant": "#006a2d",
+              "surface-bright": "#292c32",
+              "outline-variant": "#46484d",
+              "on-surface-variant": "#aaabb0",
+              "surface-variant": "#23262c",
+              "secondary": "#c180ff",
+              "secondary-fixed-dim": "#dbb4ff",
+              "on-primary-fixed-variant": "#005762",
+              "tertiary-fixed": "#6bff8f",
+              "on-primary-fixed": "#003840",
+              "secondary-container": "#6f00be",
+              "tertiary": "#c5ffc9",
+              "error-container": "#9f0519",
+              "on-secondary-fixed": "#4f0089",
+              "error": "#ff716c",
+              "surface": "#0c0e12",
+              "surface-container-highest": "#23262c",
+              "on-tertiary": "#00692c",
+              "surface-container": "#171a1f",
+              "on-background": "#f6f6fc",
+              "inverse-on-surface": "#53555a",
+              "surface-container-low": "#111318",
+              "primary-fixed": "#00e3fd",
+              "outline": "#74757a",
+              "secondary-dim": "#9c48ea",
+              "tertiary-container": "#6bff8f",
+              "error-dim": "#d7383b",
+              "surface-container-high": "#1d2025",
+              "on-secondary-fixed-variant": "#7511c3",
+              "background": "#0c0e12",
+              "primary-container": "#00e3fd"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-manrope { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .glass-panel { backdrop-filter: blur(20px); background: rgba(23, 26, 31, 0.6); }
+        .bg-glow { background: linear-gradient(135deg, #81ecff 0%, #00e3fd 100%); }
+        .pulsate { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0c0e12; }
+        ::-webkit-scrollbar-thumb { background: #23262c; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface selection:bg-primary selection:text-on-primary">
+<!-- Top Navigation Shell -->
+<nav class="fixed top-0 w-full z-50 bg-[#0c0e12] flex justify-between items-center px-6 py-4 w-full">
+<div class="text-2xl font-black text-[#81ecff] tracking-tighter uppercase font-manrope">Sonic Architecture</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4">
+<button class="text-[#f6f6fc] opacity-70 hover:bg-[#23262c] transition-colors duration-200 p-2 rounded-xl active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-[#f6f6fc] opacity-70 hover:bg-[#23262c] transition-colors duration-200 p-2 rounded-xl active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden">
+<img alt="User profile avatar" data-alt="Close up portrait of a professional tour manager with a headset, cinematic lighting, dark background, sharp focus" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAAq7xIgBona2MhzdC_3Mjv7Z5J6ZVKGYYYOpNF95UE2thnbXGUlABtTXLeipXq2QEu80TlAfET4NTvmXvqb8wMrObp33PV_AGF2M7Ylkym2XjMOl4G0tlhOv3g6ua_VkXjnGVBYcq7g1PyoKxDOqGquRLxFde53aoXFM9lIwbNUh5Ec76vzpyz0iOB9k99fA9NPOfLKwkE5x2Gxtitil0SuTRu9d47AWdcX9L94PsNXUipRM2o4X41Yd_2bUHopn2BrcBfJg3Gd9gY"/>
+</div>
+</div>
+</nav>
+<!-- Sidebar Navigation Shell -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-[#111318] border-r border-[#23262c] border-opacity-20 flex flex-col h-full py-8 hidden md:flex pt-24 z-40">
+<div class="px-6 mb-8">
+<div class="flex items-center gap-3 mb-2">
+<div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-fixed" data-icon="album">album</span>
+</div>
+<h2 class="text-xl font-bold text-[#f6f6fc] font-manrope">World Tour 2024</h2>
+</div>
+<p class="font-manrope uppercase tracking-[0.05rem] text-[10px] font-semibold text-[#f6f6fc] opacity-50">North America Leg</p>
+</div>
+<div class="flex-grow">
+<!-- Hub is Active -->
+<a class="flex items-center gap-3 px-6 py-3 text-[#81ecff] bg-[#23262c] rounded-r-full mr-4 font-manrope uppercase tracking-[0.05rem] text-xs font-semibold active:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Hub</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-[#f6f6fc] opacity-60 hover:opacity-100 hover:bg-[#1d2025] hover:text-[#c180ff] transition-all font-manrope uppercase tracking-[0.05rem] text-xs font-semibold active:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span>Schedule</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-[#f6f6fc] opacity-60 hover:opacity-100 hover:bg-[#1d2025] hover:text-[#c180ff] transition-all font-manrope uppercase tracking-[0.05rem] text-xs font-semibold active:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="today">today</span>
+<span>Day Sheet</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-[#f6f6fc] opacity-60 hover:opacity-100 hover:bg-[#1d2025] hover:text-[#c180ff] transition-all font-manrope uppercase tracking-[0.05rem] text-xs font-semibold active:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Guest List</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-[#f6f6fc] opacity-60 hover:opacity-100 hover:bg-[#1d2025] hover:text-[#c180ff] transition-all font-manrope uppercase tracking-[0.05rem] text-xs font-semibold active:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="flight_takeoff">flight_takeoff</span>
+<span>Logistics</span>
+</a>
+</div>
+<div class="px-6 py-4 space-y-4">
+<button class="w-full bg-glow text-on-primary-fixed py-3 rounded-xl font-bold font-manrope uppercase text-xs tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-lg shadow-primary/20">
+                Start Soundcheck
+            </button>
+<div class="space-y-1">
+<a class="flex items-center gap-3 text-[#f6f6fc] opacity-60 hover:opacity-100 transition-all py-2 text-xs font-semibold font-manrope uppercase" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="help">help</span>
+<span>Support</span>
+</a>
+<a class="flex items-center gap-3 text-[#f6f6fc] opacity-60 hover:opacity-100 transition-all py-2 text-xs font-semibold font-manrope uppercase" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="history">history</span>
+<span>Archive</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="md:pl-64 pt-24 min-h-screen pb-12">
+<div class="max-w-7xl mx-auto px-6 lg:px-10">
+<!-- Hero Bento Header -->
+<header class="mb-10 grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Showtime Spotlight -->
+<div class="lg:col-span-2 relative overflow-hidden rounded-xl bg-surface-container-low p-8 flex flex-col justify-between min-h-[320px]">
+<div class="absolute inset-0 z-0">
+<img alt="Live concert arena" class="w-full h-full object-cover opacity-30 grayscale hover:grayscale-0 transition-all duration-700" data-alt="Wide shot of a massive concert arena stage with dramatic blue and purple lighting, beams of light cutting through haze, energetic atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCddA9hvJBO6xM_PpwQD5mX5nYvxkOB15sU97MTgOqOCYbii6viTuY5EoSQBE91t8Sp8ccnUO03o-fF29B1-kXkYUnYXvpZh24Tbr51fNCmfJ0GKN83ji63Zf7OGLb5zuehZL7cJNMi4JYGuJVpeiNOftUrOZmmIziS3IKQKgJlUFG4gbplI8wc4lsvTcsi1fKuealTBTmhr75vxL_lUrttiS1NO-KtemLCuHUBYJxWn6OCTqobnv3cu3BRmXSclY6yoiNtygrKJEIr"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent"></div>
+</div>
+<div class="relative z-10">
+<div class="flex items-center gap-3 mb-4">
+<span class="bg-tertiary-container text-on-tertiary-container px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+<span class="w-2 h-2 bg-on-tertiary-container rounded-full pulsate"></span> Live Today
+                            </span>
+<span class="text-on-surface-variant font-label text-sm uppercase tracking-wider">London, United Kingdom</span>
+</div>
+<h1 class="text-5xl md:text-7xl font-manrope font-extrabold text-on-surface tracking-tighter leading-none mb-4">The O2 Arena</h1>
+</div>
+<div class="relative z-10 flex flex-wrap items-end justify-between gap-6">
+<div>
+<p class="text-on-surface-variant font-label uppercase text-xs tracking-[0.2em] mb-1">Countdown to Doors</p>
+<div class="flex items-baseline gap-2">
+<span class="text-5xl font-manrope font-black text-primary">04:22:18</span>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="text-right">
+<p class="text-on-surface-variant font-label uppercase text-[10px] tracking-widest">Load-In</p>
+<p class="text-lg font-bold font-manrope">09:00 AM</p>
+</div>
+<div class="text-right">
+<p class="text-on-surface-variant font-label uppercase text-[10px] tracking-widest">Soundcheck</p>
+<p class="text-lg font-bold font-manrope">03:30 PM</p>
+</div>
+<div class="text-right">
+<p class="text-on-surface-variant font-label uppercase text-[10px] tracking-widest">Stage Time</p>
+<p class="text-lg font-bold font-manrope text-primary">09:15 PM</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Next Destination Card -->
+<div class="rounded-xl bg-surface-container-high p-6 flex flex-col justify-between border-l-4 border-secondary/40">
+<div>
+<div class="flex justify-between items-start mb-6">
+<p class="text-secondary font-label font-bold uppercase text-xs tracking-widest">Next Stop</p>
+<span class="material-symbols-outlined text-secondary opacity-50" data-icon="flight_takeoff">flight_takeoff</span>
+</div>
+<h3 class="text-3xl font-manrope font-bold text-on-surface mb-1">Paris, FR</h3>
+<p class="text-on-surface-variant text-sm font-label mb-6">Accor Arena • Oct 24</p>
+<div class="space-y-3">
+<div class="flex justify-between items-center text-xs">
+<span class="text-on-surface-variant">Travel Method</span>
+<span class="font-bold">Eurostar High-Speed</span>
+</div>
+<div class="flex justify-between items-center text-xs">
+<span class="text-on-surface-variant">Departing Hub</span>
+<span class="font-bold">St Pancras Int'l</span>
+</div>
+<div class="flex justify-between items-center text-xs">
+<span class="text-on-surface-variant">Visa Status</span>
+<span class="text-tertiary-dim font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="check_circle">check_circle</span> Cleared
+                                </span>
+</div>
+</div>
+</div>
+<button class="w-full mt-6 py-3 border border-outline-variant/30 rounded-xl text-on-surface font-semibold text-xs uppercase tracking-widest hover:bg-surface-bright transition-colors">
+                        View Logistics
+                    </button>
+</div>
+</header>
+<!-- Secondary Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Weather Widget -->
+<div class="rounded-xl bg-surface-container-low p-6 flex flex-col">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary" data-icon="cloud">cloud</span>
+<h4 class="font-manrope text-xs font-bold uppercase tracking-widest text-on-surface-variant">Weather at Venue</h4>
+</div>
+<div class="flex items-center gap-4 mb-4">
+<span class="text-4xl font-manrope font-bold">14°C</span>
+<div class="text-[10px] leading-tight text-on-surface-variant uppercase font-semibold">
+                            Partly Cloudy<br/>Wind: 12km/h
+                        </div>
+</div>
+<div class="mt-auto pt-4 border-t border-outline-variant/10">
+<p class="text-[10px] text-on-surface-variant mb-2 font-bold uppercase tracking-tighter">Forecast (Showtime)</p>
+<div class="flex justify-between">
+<div class="text-center">
+<p class="text-[9px] opacity-50 mb-1">20:00</p>
+<span class="material-symbols-outlined text-sm block" data-icon="rainy">rainy</span>
+<p class="text-[10px] font-bold">12°</p>
+</div>
+<div class="text-center">
+<p class="text-[9px] opacity-50 mb-1">21:00</p>
+<span class="material-symbols-outlined text-sm block" data-icon="cloud">cloud</span>
+<p class="text-[10px] font-bold">11°</p>
+</div>
+<div class="text-center">
+<p class="text-[9px] opacity-50 mb-1">22:00</p>
+<span class="material-symbols-outlined text-sm block" data-icon="partly_sunny">partly_cloudy_day</span>
+<p class="text-[10px] font-bold">10°</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Crew Availability -->
+<div class="rounded-xl bg-surface-container-low p-6 flex flex-col">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-secondary" data-icon="groups">groups</span>
+<h4 class="font-manrope text-xs font-bold uppercase tracking-widest text-on-surface-variant">Crew Status</h4>
+</div>
+<div class="space-y-4">
+<div>
+<div class="flex justify-between text-[10px] font-bold uppercase tracking-wider mb-1">
+<span>Sound Crew</span>
+<span class="text-primary">8/8</span>
+</div>
+<div class="h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-full"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-[10px] font-bold uppercase tracking-wider mb-1">
+<span>Lighting</span>
+<span class="text-primary">11/12</span>
+</div>
+<div class="h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[92%]"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-[10px] font-bold uppercase tracking-wider mb-1">
+<span>Backstage / Rig</span>
+<span class="text-secondary">18/22</span>
+</div>
+<div class="h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-[81%]"></div>
+</div>
+</div>
+</div>
+<div class="mt-auto pt-4 flex -space-x-2">
+<img alt="Crew" class="w-6 h-6 rounded-full border border-surface" data-alt="Headshot of a sound engineer working in low light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCr3lsIZnk9Hqfht2DrEwooy7m5-xztSBdrr_NNwKsmLdpQZ0BZ2-TGwTPqJiVAHCU55Uxk1IH3YjdYqjT3jddBseYP3WMJ8B4PHCEJ1uNWBge--yf8OoOjRhqCU4rfsp-H-vfKr296bLEdDzPbNftym1w3Sd-zCzsjy6cH8V6Caz3sswLo115j_KxaA4fcRHDH1tWrfKbxHhupS89vMz83XDHUwysC2l2X4b9hZLy6mwaEI98zBBtjaPTv21WBodSDiwgJfaRT9vap"/>
+<img alt="Crew" class="w-6 h-6 rounded-full border border-surface" data-alt="Portrait of a female stage manager wearing a black headset" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8vNBAz8Zzoh3M238XPlw0x1VyTX3eA4HdEe-p7D0XXr1bclCkdDR77PR0LZZGfVk5-PdmouqZeuFCrJWpjTZGdCBFaNYaH74CtLwm72JarUJrA40_gJklw2RdPMTpeMQgQpu2HsiuIdeViH4-gvSu02y1DHlKNdAgBO3CVieYZjCDIEgokZWrkrCc6c2RCActxk1tksM4FGt1xoJuqYrkZzqYWua_yAW9I6F9-D92kH-oMuzLydnIx79WSUhay4IJ2GO30bskELH3"/>
+<img alt="Crew" class="w-6 h-6 rounded-full border border-surface" data-alt="Close up of a professional lighting designer in a dark room" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGFcXMTwAZRo_rB3wuuhLfyRBGXZDQR4ufmdD132-hAg2DRQNF7ZoGdv3HerQqe_rByeOWaMIrmlVsv_ik9x6CASBpv0ozYyHjB5qxv0Q0UmiH-ukumUTYpjkw3L2Tm_aObAi7yzKx05a6p760_q0niHE3dsuSQepioDYkuPt7IA7rMt-tDFoB8XrnTashTT9qkKWhdWPgzWtw3Fn3GNrNvDqjziyAznDxq0PLHxQkA5yth8LHQYBI1HHVWyXkkDOBx4wwItD94XL6"/>
+<div class="w-6 h-6 rounded-full border border-surface bg-surface-container-high text-[8px] flex items-center justify-center font-bold text-on-surface-variant">+34</div>
+</div>
+</div>
+<!-- Announcements -->
+<div class="lg:col-span-2 rounded-xl bg-surface-container-low p-6 flex flex-col">
+<div class="flex justify-between items-center mb-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-error" data-icon="campaign">campaign</span>
+<h4 class="font-manrope text-xs font-bold uppercase tracking-widest text-on-surface-variant">Announcements</h4>
+</div>
+<button class="text-[10px] font-bold uppercase tracking-widest text-primary hover:underline">View All</button>
+</div>
+<div class="space-y-4">
+<div class="group flex gap-4 p-3 rounded-lg hover:bg-surface-container-high transition-colors cursor-pointer">
+<div class="shrink-0 w-10 h-10 rounded-lg bg-error-container/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-error" data-icon="priority_high">priority_high</span>
+</div>
+<div>
+<h5 class="text-sm font-bold mb-0.5 group-hover:text-primary transition-colors">Rigging Safety Update</h5>
+<p class="text-xs text-on-surface-variant leading-relaxed">Stage left motor 04 requires inspection before soundcheck. Delaying lift by 15 mins.</p>
+<span class="text-[9px] font-bold text-on-surface-variant opacity-50 mt-2 block uppercase">12m ago • Safety Officer</span>
+</div>
+</div>
+<div class="group flex gap-4 p-3 rounded-lg hover:bg-surface-container-high transition-colors cursor-pointer">
+<div class="shrink-0 w-10 h-10 rounded-lg bg-tertiary-container/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary-dim" data-icon="restaurant">restaurant</span>
+</div>
+<div>
+<h5 class="text-sm font-bold mb-0.5 group-hover:text-primary transition-colors">Catering - Dinner Service</h5>
+<p class="text-xs text-on-surface-variant leading-relaxed">Dinner is now served in Room B. Local specialties from Camden Market featured tonight.</p>
+<span class="text-[9px] font-bold text-on-surface-variant opacity-50 mt-2 block uppercase">45m ago • Hospitality</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Venue Info / Map Placeholder Section -->
+<section class="mt-6 rounded-xl overflow-hidden bg-surface-container-low">
+<div class="grid grid-cols-1 md:grid-cols-3">
+<div class="p-8 md:col-span-1 border-r border-outline-variant/10">
+<h4 class="font-manrope text-xs font-bold uppercase tracking-[0.2em] text-on-surface-variant mb-6">Venue Access</h4>
+<div class="space-y-6">
+<div>
+<p class="text-[10px] font-bold text-on-surface-variant uppercase mb-2">Stage Door Entry</p>
+<p class="text-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm" data-icon="location_on">location_on</span>
+                                    West Plaza G-4 Gate
+                                </p>
+</div>
+<div>
+<p class="text-[10px] font-bold text-on-surface-variant uppercase mb-2">Parking Pass</p>
+<div class="bg-surface-container-lowest p-3 rounded-lg flex items-center justify-between border border-outline-variant/20">
+<span class="text-xs font-mono tracking-wider">UK-LON-O2-2024-X</span>
+<span class="material-symbols-outlined text-sm opacity-50" data-icon="content_copy">content_copy</span>
+</div>
+</div>
+<div class="pt-4">
+<button class="text-xs font-bold text-secondary uppercase tracking-widest flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="map">map</span> View Venue Floorplan
+                                </button>
+</div>
+</div>
+</div>
+<div class="md:col-span-2 relative min-h-[300px]">
+<img alt="Map of London" class="w-full h-full object-cover grayscale brightness-50" data-alt="Monochrome stylized satellite map of London Greenwich area with the O2 Arena highlighted in neon cyan" data-location="London" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVISa8r8aiX_yHhpZ49JCisp8PASKuUEI4IxpQB_TeS8uEzFJGporWtst60SGiP6VvpCb5oI6_25W9_9SPOSHu0uVks2nF3y5eyE-LbM3WnEHi7Mf1gXCudjrZS9C8EyxIOFc1LTeQOGvdqM6fluUyC1VA6kdwTHlv9fzM8bLq0cy2Hm-__SpEgHN38Us1np0nlqc6bOTxuUotfmJZrtRgaUEknuJcq_yIBppYOdG5-9bG-sTnrj0imaj1qHMPovA4CAvsQgS21WDt"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="glass-panel p-4 rounded-xl border border-primary/20 flex items-center gap-4">
+<div class="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
+<div class="w-3 h-3 bg-primary rounded-full pulsate"></div>
+</div>
+<div>
+<p class="text-xs font-bold uppercase text-primary">Current Location</p>
+<p class="text-lg font-manrope font-bold">Peninsula Square, London</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Bottom Nav for Mobile -->
+<nav class="fixed bottom-0 w-full z-50 bg-[#0c0e12] flex justify-between items-center px-6 py-4 md:hidden border-t border-[#23262c] border-opacity-20">
+<a class="text-[#81ecff] flex flex-col items-center" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-[10px] uppercase font-bold mt-1">Hub</span>
+</a>
+<a class="text-[#f6f6fc] opacity-70 flex flex-col items-center" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="text-[10px] uppercase font-bold mt-1">Tour</span>
+</a>
+<a class="text-[#f6f6fc] opacity-70 flex flex-col items-center" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="text-[10px] uppercase font-bold mt-1">Crew</span>
+</a>
+<a class="text-[#f6f6fc] opacity-70 flex flex-col items-center" href="#">
+<span class="material-symbols-outlined" data-icon="flight_takeoff">flight_takeoff</span>
+<span class="text-[10px] uppercase font-bold mt-1">Logs</span>
+</a>
+</nav>
+<!-- FAB Contextual Action -->
+<button class="fixed bottom-24 right-8 md:bottom-12 md:right-12 w-16 h-16 rounded-full bg-glow text-on-primary-fixed shadow-2xl shadow-primary/40 flex items-center justify-center active:scale-90 transition-transform z-50">
+<span class="material-symbols-outlined text-3xl font-bold" data-icon="mic_external_on">mic_external_on</span>
+</button>
+</body></html>

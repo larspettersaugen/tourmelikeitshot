@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
+import { hasFullTourCatalogAccess } from '@/lib/viewer-access';
 
 export async function PATCH(
   req: Request,
@@ -10,7 +11,7 @@ export async function PATCH(
     const session = await getSession();
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const role = (session.user as { role?: string }).role;
-    if (role !== 'admin' && role !== 'editor') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!hasFullTourCatalogAccess(role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     const { dateId, itemId } = await params;
     const body = await req.json();
     const item = await prisma.scheduleItem.findFirst({ where: { id: itemId, tourDateId: dateId } });
@@ -50,7 +51,7 @@ export async function DELETE(
   const session = await getSession();
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const role = (session.user as { role?: string }).role;
-  if (role !== 'admin' && role !== 'editor') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!hasFullTourCatalogAccess(role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { dateId, itemId } = await params;
   const item = await prisma.scheduleItem.findFirst({ where: { id: itemId, tourDateId: dateId } });
   if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 });

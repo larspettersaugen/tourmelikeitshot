@@ -12,7 +12,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 
 const allNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/projects', label: 'Artists', icon: FolderOpen },
+  { href: '/dashboard/projects', label: 'Projects', icon: FolderOpen },
   { href: '/dashboard/tours', label: 'Tours', icon: MapPin },
   { href: '/dashboard/venues', label: 'Venues', icon: Building2 },
   { href: '/dashboard/people', label: 'People', icon: Users },
@@ -46,11 +46,14 @@ export function DashboardLayoutClient({ user, children }: { user: User; children
     <>
       <div className={`shrink-0 border-b border-stage-border flex items-center ${sidebarCollapsed ? 'p-3 justify-center' : 'p-4'}`}>
         <Link href="/dashboard" className={`flex items-center text-white font-semibold ${sidebarCollapsed ? 'justify-center' : 'gap-2'}`}>
-          <Calendar className="h-6 w-6 shrink-0 text-stage-accent" />
+          <Calendar className="h-6 w-6 shrink-0 text-stage-neonCyan" />
           {!sidebarCollapsed && <span className="truncate">{"Tour Me Like It's Hot"}</span>}
         </Link>
       </div>
-      <nav className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 ${sidebarCollapsed ? 'p-2 items-center' : 'p-3'}`}>
+      <nav
+        data-sidebar-scroll
+        className={`flex-1 min-h-0 overflow-y-auto overscroll-y-contain flex flex-col gap-1 ${sidebarCollapsed ? 'p-2 items-center' : 'p-3'}`}
+      >
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive = href === '/dashboard' ? pathname === href : pathname.startsWith(href);
           return (
@@ -109,6 +112,11 @@ export function DashboardLayoutClient({ user, children }: { user: User; children
         className={`hidden lg:flex lg:fixed lg:top-0 lg:bottom-0 lg:left-0 lg:z-30 lg:flex-col transition-[width] duration-200 shrink-0 ${
           sidebarCollapsed ? 'lg:w-[4.5rem]' : 'lg:w-64'
         }`}
+        onWheel={(e) => {
+          const t = e.target as Node;
+          if (e.currentTarget.querySelector('[data-sidebar-scroll]')?.contains(t)) return;
+          e.preventDefault();
+        }}
       >
         <aside className="flex flex-col h-full min-h-0 overflow-hidden border-r border-stage-border bg-stage-card w-full" aria-label="Main navigation">
           {sidebarContent}
@@ -131,7 +139,7 @@ export function DashboardLayoutClient({ user, children }: { user: User; children
         {/* Mobile header - visible below lg only. Never show with sidebar. */}
         <header className="flex lg:hidden shrink-0 flex-row items-center justify-between h-14 px-4 border-b border-stage-border bg-stage-surface min-h-[3.5rem]">
           <Link href="/dashboard" className="flex items-center gap-2 text-white font-semibold min-w-0">
-            <Calendar className="h-6 w-6 shrink-0 text-stage-accent" />
+            <Calendar className="h-6 w-6 shrink-0 text-stage-neonCyan" />
             <span className="truncate">{"Tour Me Like It's Hot"}</span>
           </Link>
           <div className="relative flex items-center gap-1">

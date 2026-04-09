@@ -1,15 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
+import { hasFullTourCatalogAccess, userMayAccessTour } from '@/lib/viewer-access';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ tourId: string }> }) {
   const session = await getSession();
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { tourId } = await params;
+  const role = (session.user as { role?: string }).role;
+  if (!(await userMayAccessTour(session.user.id, role, tourId))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   const tour = await prisma.tour.findUnique({
     where: { id: tourId },
     include: {
       dates: { orderBy: { date: 'asc' } },
+      manager: { select: { id: true, name: true } },
     },
   });
   if (!tour) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -19,6 +25,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ tourId:
     timezone: tour.timezone,
     startDate: tour.startDate?.toISOString() ?? null,
     endDate: tour.endDate?.toISOString() ?? null,
+    manager: tour.manager ? { id: tour.manager.id, name: tour.manager.name } : null,
     dates: tour.dates.map((d) => ({
       id: d.id,
       venueName: d.venueName,
@@ -26,6 +33,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ tourId:
       date: d.date.toISOString(),
       status: d.status,
       address: d.address,
+      venueId: d.venueId,
+      name: d.name,
     })),
   });
 }
@@ -34,12 +43,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ tourId
   const session = await getSession();
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const role = (session.user as { role?: string }).role;
-  if (role !== 'admin' && role !== 'editor') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!hasFullTourCatalogAccess(role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { tourId } = await params;
   const body = await req.json();
-  const data: { name?: string; timezone?: string; startDate?: Date | null; endDate?: Date | null } = {};
+  const data: { name?: string; timezone?: string; startDate?: Date | null; endDate?: Date | null; managerId?: string | null } = {};
   if (body.name != null) data.name = body.name;
   if (body.timezone != null) data.timezone = body.timezone;
+  if (body.managerId !== undefined) data.managerId = body.managerId || null;
   if (body.startDate !== undefined) data.startDate = body.startDate ? new Date(body.startDate) : null;
   if (body.endDate !== undefined) data.endDate = body.endDate ? new Date(body.endDate) : null;
 

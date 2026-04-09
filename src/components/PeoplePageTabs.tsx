@@ -7,6 +7,9 @@ import { GroupsContent } from './GroupsContent';
 
 type Person = {
   id: string;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
   name: string;
   type: string;
   birthdate: string | null;
@@ -18,7 +21,9 @@ type Person = {
   timezone: string | null;
   notes: string | null;
   userId: string | null;
+  isBookingAdmin?: boolean;
   isPowerUser?: boolean;
+  linkedRoleLocked?: boolean;
   hasPendingInvite?: boolean;
 };
 

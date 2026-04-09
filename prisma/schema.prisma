@@ -16,7 +16,7 @@ model User {
   password  String?  // null for OAuth users (e.g. Google)
   name      String?
   image     String?  // avatar URL from OAuth
-  role      String   @default("viewer") // viewer | power_user | editor | admin  (viewer=basic, power_user=see more, editor/admin=masters)
+  role      String   @default("viewer") // viewer | power_user | admin | superadmin — power_user & viewer: tours via TravelGroupMember only; admin & superadmin: full catalog (legacy DB may still have editor; treated as admin in app code)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   profile   Person?  // optional link to Person profile
@@ -40,6 +40,10 @@ model PasswordResetToken {
 
 model Person {
   id        String   @id @default(cuid())
+  firstName  String
+  middleName String?
+  lastName   String
+  /// Denormalized full name (kept in sync with first/middle/last for search and legacy use).
   name      String
   type      String   // musician | superstar | crew | tour_manager | driver
   birthdate DateTime?
@@ -58,6 +62,8 @@ model Person {
   travelingMembers TravelGroupMember[]
   contacts         Contact[]
   groupMembers    GroupMember[]
+  ownedProjects   Project[] @relation("ProjectOwner")
+  managedTours    Tour[]    @relation("TourManager")
 }
 
 model Group {
@@ -93,7 +99,9 @@ model Invite {
 
 model Project {
   id        String   @id @default(cuid())
-  name      String   // artist/project name, e.g. "Chris Holsten"
+  name      String   // project name, e.g. "Chris Holsten"
+  ownerId   String?  // optional project owner (Person who is responsible)
+  owner     Person?  @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   tours     Tour[]
@@ -107,6 +115,8 @@ model Tour {
   timezone         String              @default("UTC")
   startDate        DateTime?           // tour period start
   endDate          DateTime?           // tour period end
+  managerId        String?             // optional tour manager (Person responsible for this tour)
+  manager          Person?             @relation("TourManager", fields: [managerId], references: [id], onDelete: SetNull)
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
   dates            TourDate[]
@@ -142,6 +152,10 @@ model TourDate {
   id            String   @id @default(cuid())
   tourId        String
   tour          Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  venueId       String?
+  venue         Venue?   @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  /// Optional label for this day on the tour (e.g. show title). UI falls back to venue + city when null.
+  name          String?
   venueName     String
   city          String
   date          DateTime
@@ -154,11 +168,16 @@ model TourDate {
   promoterPhone String?
   promoterEmail String?
   notes         String?  // day notes for this date
+  /// Total guest-list spots from the promoter (optional cap).
+  guestListCapacity Int?
+  /// When true, capacity cannot be changed until unlocked; ticket totals cannot exceed capacity (if set).
+  guestListCapacityLocked Boolean @default(false)
   // User-confirmed: all advance "Done" + all tasks done; shows checkmark on tour overview.
   advanceComplete Boolean @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   scheduleItems ScheduleItem[]
+  guestListEntries TourDateGuestListEntry[]
   transports  Transport[]
   hotels      Hotel[]
   contacts    Contact[]
@@ -166,6 +185,8 @@ model TourDate {
   advance     Advance?
   advanceFiles AdvanceFile[]
   tasks       TourDateTask[]
+
+  @@index([venueId])
 }
 
 model TourDateTask {
@@ -177,6 +198,20 @@ model TourDateTask {
   sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+/// Guest-list names for a show date (not the same as traveling crew).
+model TourDateGuestListEntry {
+  id            String   @id @default(cuid())
+  tourDateId    String
+  tourDate      TourDate @relation(fields: [tourDateId], references: [id], onDelete: Cascade)
+  name          String
+  ticketCount   Int      @default(1)
+  representing  String?  // e.g. label, company, act
+  phone         String?
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Advance {
@@ -197,6 +232,23 @@ model Advance {
   equipmentTransportCompromises Boolean @default(false)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
+  customFields           AdvanceCustomField[]
+}
+
+/// User-defined advance sections (same UX as technical / rider / logistics / equipment).
+model AdvanceCustomField {
+  id           String   @id @default(cuid())
+  advanceId    String
+  advance      Advance  @relation(fields: [advanceId], references: [id], onDelete: Cascade)
+  title        String   @default("Custom")
+  body         String?
+  done         Boolean  @default(false)
+  compromises  Boolean  @default(false)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([advanceId])
 }
 
 model AdvanceFile {
@@ -211,19 +263,34 @@ model AdvanceFile {
   createdAt      DateTime @default(now())
 }
 
+enum VenueCategory {
+  venue
+  festival
+}
+
 // Saved concert / event locations (reference list; tour dates still store venue text independently).
 model Venue {
-  id        String   @id @default(cuid())
-  name      String   // venue or room name
-  city      String
-  address   String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String          @id @default(cuid())
+  category       VenueCategory   @default(venue)
+  name           String          // venue or room name
+  city           String
+  address        String?
+  /// Max audience / room capacity (optional reference).
+  capacity       Int?
+  notes          String?         // general / other
+  loadInNotes    String?         // load-in, docks, parking for trucks
+  cateringNotes  String?
+  accessNotes    String?         // doors, crew, production access, security
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  venueContacts  VenueContact[]
+  tourDates      TourDate[]
 }
 
 model VenueContact {
   id        String    @id @default(cuid())
+  venueId   String?
+  venue     Venue?    @relation(fields: [venueId], references: [id], onDelete: SetNull)
   name      String
   role      String    // free text: "venue", "promoter", etc.
   phone     String?
@@ -232,6 +299,8 @@ model VenueContact {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   contacts  Contact[]
+
+  @@index([venueId])
 }
 
 model Contact {

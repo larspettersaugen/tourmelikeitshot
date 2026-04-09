@@ -1,10 +1,10 @@
 # Local dev accounts (Supabase Auth)
 
-Logins use **Supabase Auth** (email + password). The app also has matching rows in the Prisma `User` table for roles (`admin`, `editor`, `viewer`).
+Logins use **Supabase Auth** (email + password). The app also has matching rows in the Prisma `User` table for roles (`superadmin`, `admin`, `power_user`, `viewer`).
 
 These accounts are for **local / staging only**. Do not reuse these passwords in production.
 
-## Admin (simple password)
+## Superadmin (simple password)
 
 | Field    | Value              |
 |----------|--------------------|
@@ -25,11 +25,13 @@ Requires `SUPABASE_SERVICE_ROLE_KEY` and `NEXT_PUBLIC_SUPABASE_URL` in `.env` or
 
 `prisma/seed.ts` creates Supabase users + Prisma users when you run `npm run db:seed`. If the Auth user **already exists**, the seed does **not** change the password—use `db:set-password` instead.
 
-| Email              | Password (on fresh seed) | Role   |
-|--------------------|--------------------------|--------|
-| `admin@tour.local` | `tour1234`               | admin  |
-| `editor@tour.local`| `editor123edit`          | editor |
-| `viewer@tour.local`| `viewer123view`          | viewer |
+| Email              | Password (on fresh seed) | Role        |
+|--------------------|--------------------------|-------------|
+| `admin@tour.local` | `tour1234`               | superadmin  |
+| `editor@tour.local`| `editor123edit`          | admin       |
+| `viewer@tour.local`| `viewer123view`          | viewer      |
+
+The **`editor@tour.local`** address is unchanged for convenience; its role is **`admin`** (booking-firm staff: full tour catalog, same app powers as before the rename). **`power_user`** is assigned via People (tour/production managers on assigned tours only).
 
 ## Set any user’s password (service role)
 

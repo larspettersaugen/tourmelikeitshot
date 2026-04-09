@@ -328,7 +328,7 @@ export function GroupsContent({ allowEdit }: { allowEdit: boolean }) {
 
   if (loading && groups.length === 0) {
     return (
-      <div className="rounded-xl bg-stage-card border border-stage-border p-8 text-center text-stage-muted">
+      <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04] p-8 text-center text-stage-muted">
         Loading…
       </div>
     );
@@ -351,7 +351,7 @@ export function GroupsContent({ allowEdit }: { allowEdit: boolean }) {
           </button>
         </div>
       )}
-      <div className="rounded-xl bg-stage-card border border-stage-border overflow-hidden">
+      <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 overflow-hidden ring-1 ring-white/[0.04]">
         {groups.length === 0 && !adding && (
           <div className="p-8 text-center text-stage-muted text-sm">
             No groups yet.

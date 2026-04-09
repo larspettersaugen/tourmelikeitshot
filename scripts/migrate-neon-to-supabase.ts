@@ -21,7 +21,7 @@ const supa = new PrismaClient();
 
 async function wipe() {
   const tables = [
-    'advanceFile', 'advance', 'tourDateTask', 'scheduleItem',
+    'advanceFile', 'advanceCustomField', 'advance', 'tourDateTask', 'scheduleItem',
     'transportPassenger', 'transport', 'hotelGuest', 'hotel',
     'flightPassenger', 'flight', 'tourDateMember', 'contact',
     'tourDate', 'daySheetTemplateItem', 'daySheetTemplate',
@@ -101,9 +101,15 @@ async function migrate() {
   console.log(`TourDateTask: ${tasks.length}`);
   for (const r of tasks) await supa.tourDateTask.create({ data: r });
 
+  // Project.ownerId and Tour.managerId are carried automatically with their parent rows.
+
   const advances = await neon.advance.findMany();
   console.log(`Advance: ${advances.length}`);
   for (const r of advances) await supa.advance.create({ data: r });
+
+  const advCustom = await neon.advanceCustomField.findMany();
+  console.log(`AdvanceCustomField: ${advCustom.length}`);
+  for (const r of advCustom) await supa.advanceCustomField.create({ data: r });
 
   const advFiles = await neon.advanceFile.findMany();
   console.log(`AdvanceFile: ${advFiles.length}`);

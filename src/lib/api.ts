@@ -20,16 +20,17 @@ async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
 export const api = {
   projects: {
     list: () =>
-      fetchApi<{ id: string; name: string; tourCount: number }[]>('/projects'),
+      fetchApi<{ id: string; name: string; tourCount: number; owner: { id: string; name: string } | null }[]>('/projects'),
     get: (id: string) =>
       fetchApi<{
         id: string;
         name: string;
+        owner: { id: string; name: string } | null;
         tours: { id: string; name: string; timezone: string; dateCount: number }[];
       }>(`/projects/${id}`),
-    create: (body: { name: string }) =>
+    create: (body: { name: string; ownerId?: string | null }) =>
       fetchApi<{ id: string }>('/projects', { method: 'POST', body: JSON.stringify(body) }),
-    update: (id: string, body: { name: string }) =>
+    update: (id: string, body: { name?: string; ownerId?: string | null }) =>
       fetchApi<{ id: string }>(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
     delete: (id: string) => fetchApi<{ ok: boolean }>(`/projects/${id}`, { method: 'DELETE' }),
     createTour: (projectId: string, body: { name: string; startDate?: string; endDate?: string }) =>
@@ -47,22 +48,76 @@ export const api = {
         timezone: string;
         startDate: string | null;
         endDate: string | null;
-        dates: { id: string; venueName: string; city: string; date: string; address: string | null }[];
+        manager: { id: string; name: string } | null;
+        dates: {
+          id: string;
+          venueName: string;
+          city: string;
+          date: string;
+          address: string | null;
+          venueId?: string | null;
+          name?: string | null;
+        }[];
       }>(`/tours/${id}`),
     create: (body: { name: string; timezone?: string }) =>
       fetchApi<{ id: string }>('/tours', { method: 'POST', body: JSON.stringify(body) }),
-    update: (id: string, body: { name?: string; timezone?: string; startDate?: string; endDate?: string }) =>
+    update: (id: string, body: { name?: string; timezone?: string; startDate?: string; endDate?: string; managerId?: string | null }) =>
       fetchApi<{ ok: boolean }>(`/tours/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
     delete: (id: string) => fetchApi<{ ok: boolean }>(`/tours/${id}`, { method: 'DELETE' }),
   },
   dates: {
     list: (tourId: string) =>
-      fetchApi<{ id: string; venueName: string; city: string; date: string; endDate: string | null; kind?: string; status?: string; address: string | null }[]>(
-        `/tours/${tourId}/dates`
-      ),
-    create: (tourId: string, body: { venueName: string; city: string; date: string; endDate?: string; kind?: string; address?: string; timezone?: string; status?: string }) =>
-      fetchApi<{ id: string }>(`/tours/${tourId}/dates`, { method: 'POST', body: JSON.stringify(body) }),
-    update: (tourId: string, dateId: string, body: { venueName?: string; city?: string; date?: string; endDate?: string | null; kind?: string; status?: string; address?: string; timezone?: string; promoterName?: string | null; promoterPhone?: string | null; promoterEmail?: string | null; notes?: string }) =>
+      fetchApi<
+        {
+          id: string;
+          venueName: string;
+          city: string;
+          date: string;
+          endDate: string | null;
+          kind?: string;
+          status?: string;
+          address: string | null;
+          venueId?: string | null;
+          name?: string | null;
+        }[]
+      >(`/tours/${tourId}/dates`),
+    create: (
+      tourId: string,
+      body: {
+        name?: string | null;
+        venueName: string;
+        city: string;
+        date: string;
+        endDate?: string;
+        kind?: string;
+        address?: string;
+        timezone?: string;
+        status?: string;
+        venueId?: string;
+      }
+    ) => fetchApi<{ id: string }>(`/tours/${tourId}/dates`, { method: 'POST', body: JSON.stringify(body) }),
+    update: (
+      tourId: string,
+      dateId: string,
+      body: {
+        venueName?: string;
+        city?: string;
+        date?: string;
+        endDate?: string | null;
+        kind?: string;
+        status?: string;
+        address?: string;
+        timezone?: string;
+        venueId?: string | null;
+        name?: string | null;
+        promoterName?: string | null;
+        promoterPhone?: string | null;
+        promoterEmail?: string | null;
+        notes?: string;
+        guestListCapacity?: number | null;
+        guestListCapacityLocked?: boolean;
+      }
+    ) =>
       fetchApi<{ ok: boolean }>(`/tours/${tourId}/dates/${dateId}`, { method: 'PATCH', body: JSON.stringify(body) }),
     delete: (tourId: string, dateId: string) =>
       fetchApi<{ ok: boolean }>(`/tours/${tourId}/dates/${dateId}`, { method: 'DELETE' }),
@@ -80,11 +135,130 @@ export const api = {
           body: JSON.stringify({ memberIds }),
         }),
     },
+    guestList: {
+      get: (tourId: string, dateId: string) =>
+        fetchApi<{
+          capacity: number | null;
+          capacityLocked: boolean;
+          entries: {
+            id: string;
+            name: string;
+            ticketCount: number;
+            representing: string | null;
+            phone: string | null;
+            sortOrder: number;
+            createdAt: string;
+          }[];
+        }>(`/tours/${tourId}/dates/${dateId}/guest-list`),
+      create: (
+        tourId: string,
+        dateId: string,
+        body: { name: string; ticketCount?: number; representing?: string | null; phone?: string | null }
+      ) =>
+        fetchApi<{
+          id: string;
+          name: string;
+          ticketCount: number;
+          representing: string | null;
+          phone: string | null;
+          sortOrder: number;
+          createdAt: string;
+        }>(`/tours/${tourId}/dates/${dateId}/guest-list`, {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }),
+      update: (
+        tourId: string,
+        dateId: string,
+        entryId: string,
+        body: {
+          name?: string;
+          ticketCount?: number;
+          representing?: string | null;
+          phone?: string | null;
+          sortOrder?: number;
+        }
+      ) =>
+        fetchApi<{ ok: boolean }>(`/tours/${tourId}/dates/${dateId}/guest-list/${entryId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(body),
+        }),
+      delete: (tourId: string, dateId: string, entryId: string) =>
+        fetchApi<{ ok: boolean }>(`/tours/${tourId}/dates/${dateId}/guest-list/${entryId}`, {
+          method: 'DELETE',
+        }),
+    },
     advance: {
       get: (tourId: string, dateId: string) =>
-        fetchApi<{ technicalInfo: string | null; rider: string | null; logistics: string | null; equipmentTransport: string | null }>(
-          `/tours/${tourId}/dates/${dateId}/advance`
-        ),
+        fetchApi<{
+          technicalInfo: string | null;
+          rider: string | null;
+          logistics: string | null;
+          equipmentTransport: string | null;
+          technicalDone: boolean;
+          technicalCompromises: boolean;
+          riderDone: boolean;
+          riderCompromises: boolean;
+          logisticsDone: boolean;
+          logisticsCompromises: boolean;
+          equipmentTransportDone: boolean;
+          equipmentTransportCompromises: boolean;
+          customFields: {
+            id: string;
+            title: string;
+            body: string | null;
+            done: boolean;
+            compromises: boolean;
+            sortOrder: number;
+            createdAt: string;
+            updatedAt: string;
+          }[];
+        }>(`/tours/${tourId}/dates/${dateId}/advance`),
+      customFields: {
+        create: (tourId: string, dateId: string, body?: { title?: string }) =>
+          fetchApi<{
+            id: string;
+            title: string;
+            body: string | null;
+            done: boolean;
+            compromises: boolean;
+            sortOrder: number;
+            createdAt: string;
+            updatedAt: string;
+          }>(`/tours/${tourId}/dates/${dateId}/advance/custom-fields`, {
+            method: 'POST',
+            body: JSON.stringify(body ?? {}),
+          }),
+        patch: (
+          tourId: string,
+          dateId: string,
+          fieldId: string,
+          body: {
+            title?: string;
+            body?: string | null;
+            done?: boolean;
+            compromises?: boolean;
+            sortOrder?: number;
+          }
+        ) =>
+          fetchApi<{
+            id: string;
+            title: string;
+            body: string | null;
+            done: boolean;
+            compromises: boolean;
+            sortOrder: number;
+            createdAt: string;
+            updatedAt: string;
+          }>(`/tours/${tourId}/dates/${dateId}/advance/custom-fields/${fieldId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(body),
+          }),
+        delete: (tourId: string, dateId: string, fieldId: string) =>
+          fetchApi<{ ok: boolean }>(`/tours/${tourId}/dates/${dateId}/advance/custom-fields/${fieldId}`, {
+            method: 'DELETE',
+          }),
+      },
       update: (
         tourId: string,
         dateId: string,
@@ -206,6 +380,11 @@ export const api = {
       }),
     delete: (templateId: string) =>
       fetchApi<{ ok: boolean }>(`/schedule-templates/${templateId}`, { method: 'DELETE' }),
+    duplicate: (templateId: string, body?: { name?: string }) =>
+      fetchApi<{ id: string }>(`/schedule-templates/${templateId}/duplicate`, {
+        method: 'POST',
+        body: JSON.stringify(body ?? {}),
+      }),
   },
   flights: {
     lookup: (params: { flight_number: string; date?: string }) => {
@@ -388,7 +567,18 @@ export const api = {
       >(dateId ? `/tours/${tourId}/contacts?dateId=${dateId}` : `/tours/${tourId}/contacts`),
     create: (
       tourId: string,
-      body: { name: string; role: string; phone?: string; email?: string; notes?: string; tourDateId?: string; personId?: string; venueContactId?: string }
+      body: {
+        name: string;
+        role: string;
+        phone?: string;
+        email?: string;
+        notes?: string;
+        tourDateId?: string;
+        personId?: string;
+        venueContactId?: string;
+        /** When a new venue contact row is created, attach it to this saved venue */
+        venueId?: string;
+      }
     ) => fetchApi<{ id: string }>(`/tours/${tourId}/contacts`, { method: 'POST', body: JSON.stringify(body) }),
     update: (tourId: string, contactId: string, body: Record<string, unknown>) =>
       fetchApi<{ ok: boolean }>(`/tours/${tourId}/contacts/${contactId}`, {
@@ -399,24 +589,66 @@ export const api = {
       fetchApi<{ ok: boolean }>(`/tours/${tourId}/contacts/${contactId}`, { method: 'DELETE' }),
   },
   venueContacts: {
-    list: (params?: { q?: string }) => {
+    list: (params?: { q?: string; venueId?: string }) => {
       const sp = new URLSearchParams();
       if (params?.q) sp.set('q', params.q);
+      if (params?.venueId) sp.set('venueId', params.venueId);
       const qs = sp.toString();
-      return fetchApi<{ id: string; name: string; role: string; phone: string | null; email: string | null; notes: string | null }[]>(
-        qs ? `/venue-contacts?${qs}` : '/venue-contacts'
-      );
+      return fetchApi<
+        {
+          id: string;
+          name: string;
+          role: string;
+          phone: string | null;
+          email: string | null;
+          notes: string | null;
+          venueId: string | null;
+          venue: { id: string; name: string; city: string } | null;
+        }[]
+      >(qs ? `/venue-contacts?${qs}` : '/venue-contacts');
     },
-    create: (body: { name: string; role?: string; phone?: string; email?: string; notes?: string }) =>
-      fetchApi<{ id: string; name: string; role: string; phone: string | null; email: string | null; notes: string | null }>(
-        '/venue-contacts',
-        { method: 'POST', body: JSON.stringify(body) }
-      ),
-    update: (id: string, body: { name?: string; role?: string; phone?: string; email?: string; notes?: string }) =>
-      fetchApi<{ id: string; name: string; role: string; phone: string | null; email: string | null; notes: string | null }>(
-        `/venue-contacts/${id}`,
-        { method: 'PATCH', body: JSON.stringify(body) }
-      ),
+    create: (body: {
+      name: string;
+      role?: string;
+      phone?: string;
+      email?: string;
+      notes?: string;
+      venueId?: string | null;
+    }) =>
+      fetchApi<{
+        id: string;
+        name: string;
+        role: string;
+        phone: string | null;
+        email: string | null;
+        notes: string | null;
+        venueId: string | null;
+        venue: { id: string; name: string; city: string } | null;
+      }>('/venue-contacts', { method: 'POST', body: JSON.stringify(body) }),
+    update: (
+      id: string,
+      body: {
+        name?: string;
+        role?: string;
+        phone?: string | null;
+        email?: string | null;
+        notes?: string | null;
+        venueId?: string | null;
+      }
+    ) =>
+      fetchApi<{
+        id: string;
+        name: string;
+        role: string;
+        phone: string | null;
+        email: string | null;
+        notes: string | null;
+        venueId: string | null;
+        venue: { id: string; name: string; city: string } | null;
+      }>(`/venue-contacts/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      }),
     delete: (id: string) => fetchApi<{ ok: boolean }>(`/venue-contacts/${id}`, { method: 'DELETE' }),
   },
   venues: {
@@ -424,23 +656,83 @@ export const api = {
       const sp = new URLSearchParams();
       if (params?.q) sp.set('q', params.q);
       const qs = sp.toString();
-      return fetchApi<{ id: string; name: string; city: string; address: string | null; notes: string | null }[]>(
-        qs ? `/venues?${qs}` : '/venues'
-      );
+      return fetchApi<
+        {
+          id: string;
+          category: 'venue' | 'festival';
+          name: string;
+          city: string;
+          address: string | null;
+          capacity: number | null;
+          notes: string | null;
+          loadInNotes: string | null;
+          cateringNotes: string | null;
+          accessNotes: string | null;
+        }[]
+      >(qs ? `/venues?${qs}` : '/venues');
     },
-    create: (body: { name: string; city: string; address?: string; notes?: string }) =>
-      fetchApi<{ id: string; name: string; city: string; address: string | null; notes: string | null }>(
-        '/venues',
-        { method: 'POST', body: JSON.stringify(body) }
-      ),
+    get: (id: string) =>
+      fetchApi<{
+        id: string;
+        category: 'venue' | 'festival';
+        name: string;
+        city: string;
+        address: string | null;
+        capacity: number | null;
+        notes: string | null;
+        loadInNotes: string | null;
+        cateringNotes: string | null;
+        accessNotes: string | null;
+      }>(`/venues/${id}`),
+    create: (body: {
+      name: string;
+      city: string;
+      category?: 'venue' | 'festival';
+      address?: string;
+      capacity?: number | null;
+      notes?: string;
+      loadInNotes?: string;
+      cateringNotes?: string;
+      accessNotes?: string;
+    }) =>
+      fetchApi<{
+        id: string;
+        category: 'venue' | 'festival';
+        name: string;
+        city: string;
+        address: string | null;
+        capacity: number | null;
+        notes: string | null;
+        loadInNotes: string | null;
+        cateringNotes: string | null;
+        accessNotes: string | null;
+      }>('/venues', { method: 'POST', body: JSON.stringify(body) }),
     update: (
       id: string,
-      body: { name?: string; city?: string; address?: string | null; notes?: string | null }
+      body: {
+        category?: 'venue' | 'festival';
+        name?: string;
+        city?: string;
+        address?: string | null;
+        capacity?: number | null;
+        notes?: string | null;
+        loadInNotes?: string | null;
+        cateringNotes?: string | null;
+        accessNotes?: string | null;
+      }
     ) =>
-      fetchApi<{ id: string; name: string; city: string; address: string | null; notes: string | null }>(
-        `/venues/${id}`,
-        { method: 'PATCH', body: JSON.stringify(body) }
-      ),
+      fetchApi<{
+        id: string;
+        category: 'venue' | 'festival';
+        name: string;
+        city: string;
+        address: string | null;
+        capacity: number | null;
+        notes: string | null;
+        loadInNotes: string | null;
+        cateringNotes: string | null;
+        accessNotes: string | null;
+      }>(`/venues/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
     delete: (id: string) => fetchApi<{ ok: boolean }>(`/venues/${id}`, { method: 'DELETE' }),
   },
   people: {
@@ -452,6 +744,9 @@ export const api = {
       return       fetchApi<
         {
           id: string;
+          firstName: string;
+          middleName: string | null;
+          lastName: string;
           name: string;
           type: string;
           birthdate: string | null;
@@ -463,13 +758,17 @@ export const api = {
           timezone: string | null;
           notes: string | null;
           userId: string | null;
+          isBookingAdmin?: boolean;
           isPowerUser?: boolean;
+          linkedRoleLocked?: boolean;
           hasPendingInvite?: boolean;
         }[]
       >(qs ? `/people?${qs}` : '/people');
     },
     create: (body: {
-        name: string;
+        firstName: string;
+        middleName?: string;
+        lastName: string;
         type: string;
         email: string;
         birthdate?: string;
@@ -479,6 +778,7 @@ export const api = {
         county?: string;
         timezone?: string;
         notes?: string;
+        isBookingAdmin?: boolean;
         isPowerUser?: boolean;
       }) =>
       fetchApi<{
@@ -490,12 +790,12 @@ export const api = {
         notes: string | null;
         inviteUrl?: string;
       }>('/people', { method: 'POST', body: JSON.stringify(body) }),
-    update: (id: string, body: { name?: string; type?: string; birthdate?: string | null; phone?: string; email?: string; streetName?: string; zipCode?: string; county?: string; timezone?: string; notes?: string; userId?: string; isPowerUser?: boolean }) =>
-      fetchApi<{ id: string; name: string; type: string; phone: string | null; email: string | null; notes: string | null }>(
+    update: (id: string, body: { firstName?: string; middleName?: string | null; lastName?: string; name?: string; type?: string; birthdate?: string | null; phone?: string | null; email?: string | null; streetName?: string | null; zipCode?: string | null; county?: string | null; timezone?: string | null; notes?: string | null; userId?: string; isBookingAdmin?: boolean; isPowerUser?: boolean }) =>
+      fetchApi<{ id: string; firstName: string; middleName: string | null; lastName: string; name: string; type: string; phone: string | null; email: string | null; notes: string | null }>(
         `/people/${id}`,
         { method: 'PATCH', body: JSON.stringify(body) }
       ),
-    invite: (personId: string, body?: { isPowerUser?: boolean }) =>
+    invite: (personId: string, body?: { isBookingAdmin?: boolean; isPowerUser?: boolean }) =>
       fetchApi<{ inviteUrl: string }>(`/people/${personId}/invite`, {
         method: 'POST',
         body: JSON.stringify(body ?? {}),

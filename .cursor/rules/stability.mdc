@@ -22,8 +22,10 @@ When making changes, avoid breaking localhost or the UI. Follow these guidelines
 
 ## Dev workflow
 
+- Prisma **query** logging is off in development by default (it slows renders). Set `PRISMA_LOG_QUERIES=1` in `.env` when debugging SQL.
 - Before starting dev server: run `npm run dev:kill` first if another instance might be running
-- If localhost stops or UI breaks: suggest `npm run dev:kill` then `rm -rf .next` then `npm run dev`
+- If localhost stops or UI breaks: suggest `npm run dev:kill` then `rm -rf .next` then `npm run dev` (or `npm run dev:clean`)
+- Internal Server Error with `ENOENT` / `build-manifest.json` / `[turbopack]_runtime`: stale or half-deleted `.next`; run `npm run dev:clean` and ensure only one dev server uses port 3000
 - Recommend hard refresh (Cmd+Shift+R) after changes
 
 ## EMFILE / ulimit

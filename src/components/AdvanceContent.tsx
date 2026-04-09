@@ -1,9 +1,29 @@
 'use client';
 
-import { Wrench, UtensilsCrossed, Truck, Package, Upload, FileText, Check } from 'lucide-react';
+import {
+  Wrench,
+  UtensilsCrossed,
+  Truck,
+  Package,
+  Upload,
+  FileText,
+  Check,
+  ClipboardList,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import { useState, useEffect, useRef, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+
+type CustomAdvanceFieldRow = {
+  id: string;
+  title: string;
+  body: string;
+  done: boolean;
+  compromises: boolean;
+  sortOrder: number;
+};
 
 type AdvanceData = {
   technicalInfo: string | null;
@@ -18,6 +38,7 @@ type AdvanceData = {
   logisticsCompromises: boolean;
   equipmentTransportDone: boolean;
   equipmentTransportCompromises: boolean;
+  customFields: CustomAdvanceFieldRow[];
 };
 
 type AdvanceFile = {
@@ -71,7 +92,11 @@ export function AdvanceContent({
   const [logisticsCompromises, setLogisticsCompromises] = useState(initial.logisticsCompromises);
   const [equipmentTransportDone, setEquipmentTransportDone] = useState(initial.equipmentTransportDone);
   const [equipmentTransportCompromises, setEquipmentTransportCompromises] = useState(initial.equipmentTransportCompromises);
+  const [customFields, setCustomFields] = useState<CustomAdvanceFieldRow[]>(initial.customFields ?? []);
   const [files, setFiles] = useState<AdvanceFile[]>(initialFiles);
+  const customFileInputRefs = useRef<Map<string, HTMLInputElement | null>>(new Map());
+  const [deletingCustomId, setDeletingCustomId] = useState<string | null>(null);
+  const [addingCustom, setAddingCustom] = useState(false);
   const router = useRouter();
   const [, startTransition] = useTransition();
   const refreshDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -110,6 +135,7 @@ export function AdvanceContent({
     setLogisticsCompromises(initial.logisticsCompromises);
     setEquipmentTransportDone(initial.equipmentTransportDone);
     setEquipmentTransportCompromises(initial.equipmentTransportCompromises);
+    setCustomFields(initial.customFields ?? []);
     setFiles(initialFiles);
   }, [initial, initialFiles]);
   const [loading, setLoading] = useState(false);
@@ -140,6 +166,12 @@ export function AdvanceContent({
         equipmentTransportDone,
         equipmentTransportCompromises,
       });
+      for (const c of customFields) {
+        await api.dates.advance.customFields.patch(tourId, dateId, c.id, {
+          title: c.title.trim() || 'Custom',
+          body: c.body.trim() || null,
+        });
+      }
       softRefresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save');
@@ -213,6 +245,71 @@ export function AdvanceContent({
     } catch {
       revert();
       setError('Failed to update');
+    }
+  }
+
+  async function handleCustomCheckboxChange(fieldId: string, field: 'done' | 'compromises', value: boolean) {
+    const row = customFields.find((c) => c.id === fieldId);
+    if (!row) return;
+    let nextDone = row.done;
+    let nextComp = row.compromises;
+    if (field === 'done') {
+      nextDone = value;
+      if (value) nextComp = false;
+    } else {
+      nextComp = value;
+      if (value) nextDone = false;
+    }
+    const snapshot = { done: row.done, compromises: row.compromises };
+    setCustomFields((p) => p.map((c) => (c.id === fieldId ? { ...c, done: nextDone, compromises: nextComp } : c)));
+    try {
+      await api.dates.advance.customFields.patch(tourId, dateId, fieldId, { done: nextDone, compromises: nextComp });
+      scheduleSoftRefresh();
+    } catch {
+      setCustomFields((p) =>
+        p.map((c) => (c.id === fieldId ? { ...c, done: snapshot.done, compromises: snapshot.compromises } : c))
+      );
+      setError('Failed to update');
+    }
+  }
+
+  async function handleAddCustomField() {
+    setError('');
+    setAddingCustom(true);
+    try {
+      const row = await api.dates.advance.customFields.create(tourId, dateId, {});
+      setCustomFields((p) => [
+        ...p,
+        {
+          id: row.id,
+          title: row.title,
+          body: row.body ?? '',
+          done: row.done,
+          compromises: row.compromises,
+          sortOrder: row.sortOrder,
+        },
+      ]);
+      scheduleSoftRefresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add section');
+    } finally {
+      setAddingCustom(false);
+    }
+  }
+
+  async function handleRemoveCustomField(fieldId: string) {
+    setError('');
+    setDeletingCustomId(fieldId);
+    try {
+      await api.dates.advance.customFields.delete(tourId, dateId, fieldId);
+      setCustomFields((p) => p.filter((c) => c.id !== fieldId));
+      const list = await api.dates.advance.files.list(tourId, dateId);
+      setFiles(list);
+      scheduleSoftRefresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to remove section');
+    } finally {
+      setDeletingCustomId(null);
     }
   }
 
@@ -294,7 +391,7 @@ export function AdvanceContent({
           >
             <div className="flex items-center justify-between gap-4 mb-3">
               <div>
-                <h3 className="text-sm font-semibold text-zinc-400 flex items-center gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2">
                   <Icon className="h-4 w-4" /> {label}
                 </h3>
                 <p className="text-xs text-stage-muted mt-0.5">{description}</p>
@@ -437,6 +534,216 @@ export function AdvanceContent({
           </section>
         );
       })}
+
+      {customFields.map((row) => {
+        const sectionId = `custom:${row.id}`;
+        const sectionFiles = files.filter((f) => f.advanceSection === sectionId);
+        const areaColor = row.compromises
+          ? 'border-amber-500/40 bg-amber-500/5'
+          : row.done
+            ? 'border-emerald-500/40 bg-emerald-500/5'
+            : 'border-red-500/30 bg-red-500/5';
+        const displayTitle = row.title.trim() || 'Custom';
+        return (
+          <section key={row.id} className={`rounded-xl border p-4 transition-colors ${areaColor}`}>
+            <div className="flex items-center justify-between gap-4 mb-3">
+              <div className="min-w-0 flex-1">
+                {allowEdit ? (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <ClipboardList className="h-4 w-4 shrink-0 text-stage-neonCyan" />
+                      <input
+                        type="text"
+                        value={row.title}
+                        onChange={(e) =>
+                          setCustomFields((p) =>
+                            p.map((c) => (c.id === row.id ? { ...c, title: e.target.value } : c))
+                          )
+                        }
+                        placeholder="Section title"
+                        className="w-full min-w-0 bg-stage-surface/80 border border-stage-border rounded-md px-2 py-1 text-sm text-white placeholder-zinc-500 focus:ring-1 focus:ring-stage-accent"
+                      />
+                    </div>
+                    <p className="text-xs text-stage-muted mt-0.5 pl-6">Custom advance section</p>
+                  </div>
+                ) : (
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2">
+                      <ClipboardList className="h-4 w-4" /> {displayTitle}
+                    </h3>
+                    <p className="text-xs text-stage-muted mt-0.5">Custom advance section</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-3 shrink-0 flex-wrap justify-end">
+                <div
+                  role="checkbox"
+                  tabIndex={allowChecklistToggle ? 0 : -1}
+                  aria-checked={row.done}
+                  aria-disabled={!allowChecklistToggle}
+                  aria-label={`${displayTitle}: done`}
+                  onClick={() => allowChecklistToggle && handleCustomCheckboxChange(row.id, 'done', !row.done)}
+                  onKeyDown={(e) => {
+                    if (allowChecklistToggle && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      handleCustomCheckboxChange(row.id, 'done', !row.done);
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 rounded-md py-0.5 -my-0.5 -mx-0.5 px-0.5 outline-none transition-colors ${
+                    allowChecklistToggle
+                      ? 'cursor-pointer hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-stage-accent/60'
+                      : 'cursor-default opacity-70'
+                  }`}
+                >
+                  <span
+                    className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 shadow-sm transition-colors ${
+                      row.done
+                        ? 'bg-emerald-500/30 border-emerald-500/70'
+                        : 'border-stage-fg/35 bg-stage-card ring-1 ring-stage-fg/10'
+                    }`}
+                    aria-hidden
+                  >
+                    {row.done && <Check className="h-3.5 w-3.5 text-emerald-400" strokeWidth={2.5} />}
+                  </span>
+                  <span className="text-xs font-medium text-stage-fg select-none">Done</span>
+                </div>
+                <div
+                  role="checkbox"
+                  tabIndex={allowChecklistToggle ? 0 : -1}
+                  aria-checked={row.compromises}
+                  aria-disabled={!allowChecklistToggle}
+                  aria-label={`${displayTitle}: compromises`}
+                  onClick={() =>
+                    allowChecklistToggle && handleCustomCheckboxChange(row.id, 'compromises', !row.compromises)
+                  }
+                  onKeyDown={(e) => {
+                    if (allowChecklistToggle && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      handleCustomCheckboxChange(row.id, 'compromises', !row.compromises);
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 rounded-md py-0.5 -my-0.5 -mx-0.5 px-0.5 outline-none transition-colors ${
+                    allowChecklistToggle
+                      ? 'cursor-pointer hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-stage-accent/60'
+                      : 'cursor-default opacity-70'
+                  }`}
+                >
+                  <span
+                    className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 shadow-sm transition-colors ${
+                      row.compromises
+                        ? 'bg-amber-500/30 border-amber-500/70'
+                        : 'border-stage-fg/35 bg-stage-card ring-1 ring-stage-fg/10'
+                    }`}
+                    aria-hidden
+                  >
+                    {row.compromises && <Check className="h-3.5 w-3.5 text-amber-400" strokeWidth={2.5} />}
+                  </span>
+                  <span className="text-xs font-medium text-stage-fg select-none">Compromises</span>
+                </div>
+                {allowEdit && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveCustomField(row.id)}
+                    disabled={deletingCustomId !== null}
+                    className="p-1.5 rounded-md text-stage-muted hover:text-red-400 hover:bg-red-400/10 disabled:opacity-50"
+                    aria-label={`Remove section ${displayTitle}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="rounded-lg bg-stage-surface/50 border border-stage-border/50 overflow-hidden">
+              {allowEdit ? (
+                <textarea
+                  value={row.body}
+                  onChange={(e) =>
+                    setCustomFields((p) => p.map((c) => (c.id === row.id ? { ...c, body: e.target.value } : c)))
+                  }
+                  placeholder="Add notes for this section…"
+                  rows={5}
+                  className="w-full px-3 py-2 rounded-lg bg-stage-surface border-0 text-white placeholder-zinc-500 text-sm resize-y min-h-[100px] focus:ring-1 focus:ring-stage-accent"
+                />
+              ) : (
+                <div className="p-4">
+                  {row.body ? (
+                    <p className="text-sm text-white whitespace-pre-wrap">{row.body}</p>
+                  ) : (
+                    <p className="text-sm text-stage-muted">—</p>
+                  )}
+                </div>
+              )}
+            </div>
+            <div
+              className={`mt-2 p-3 rounded-lg border transition-colors ${
+                draggingSection === sectionId
+                  ? 'border-stage-accent border-dashed bg-stage-accent/10'
+                  : 'border-transparent'
+              }`}
+              {...(allowEdit ? createSectionDropHandlers(sectionId) : {})}
+            >
+              {sectionFiles.length > 0 && (
+                <ul className="flex flex-wrap gap-2 mb-2">
+                  {sectionFiles.map((f) => (
+                    <li key={f.id}>
+                      <a
+                        href={downloadUrl(f.id)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-stage-surface border border-stage-border text-sm text-stage-accent hover:underline"
+                      >
+                        <FileText className="h-3.5 w-3.5" /> {f.filename}
+                        {f.sizeBytes != null && (
+                          <span className="text-stage-muted text-xs">{formatSize(f.sizeBytes)}</span>
+                        )}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {allowEdit && (
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={(el) => {
+                      const m = customFileInputRefs.current;
+                      if (el) m.set(row.id, el);
+                      else m.delete(row.id);
+                    }}
+                    type="file"
+                    className="hidden"
+                    multiple
+                    onChange={(e) => handleFileInputChange(sectionId, e)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => customFileInputRefs.current.get(row.id)?.click()}
+                    disabled={!!uploading}
+                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-stage-border text-stage-muted hover:text-stage-fg text-sm disabled:opacity-50"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    {uploading === sectionId ? 'Uploading…' : 'Upload file'}
+                  </button>
+                  <span className="text-xs text-stage-muted">
+                    {draggingSection === sectionId ? '— drop here' : '— or drag and drop'}
+                  </span>
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })}
+
+      {allowEdit && (
+        <button
+          type="button"
+          onClick={handleAddCustomField}
+          disabled={addingCustom}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-stage-border text-stage-muted hover:text-stage-fg hover:border-stage-accent/40 text-sm disabled:opacity-50"
+        >
+          <Plus className="h-4 w-4" />
+          {addingCustom ? 'Adding…' : 'Add section'}
+        </button>
+      )}
 
       {allowEdit && (
         <div className="flex items-center gap-3">

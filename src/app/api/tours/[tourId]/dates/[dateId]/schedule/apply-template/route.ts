@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
+import { hasFullTourCatalogAccess } from '@/lib/viewer-access';
 
 export async function POST(
   req: Request,
@@ -9,7 +10,7 @@ export async function POST(
   const session = await getSession();
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const role = (session.user as { role?: string }).role;
-  if (role !== 'admin' && role !== 'editor') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!hasFullTourCatalogAccess(role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { tourId, dateId } = await params;
   const date = await prisma.tourDate.findFirst({ where: { id: dateId, tourId } });
   if (!date) return NextResponse.json({ error: 'Not found' }, { status: 404 });

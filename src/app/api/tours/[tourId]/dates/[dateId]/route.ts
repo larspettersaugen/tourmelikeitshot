@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
+import { hasFullTourCatalogAccess } from '@/lib/viewer-access';
 
 export async function PATCH(
   req: Request,
@@ -9,7 +10,7 @@ export async function PATCH(
   const session = await getSession();
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const role = (session.user as { role?: string }).role;
-  if (role !== 'admin' && role !== 'editor') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!hasFullTourCatalogAccess(role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { tourId, dateId } = await params;
   const existing = await prisma.tourDate.findFirst({ where: { id: dateId, tourId } });
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -27,7 +28,12 @@ export async function PATCH(
     promoterPhone?: string | null;
     promoterEmail?: string | null;
     notes?: string | null;
+    guestListCapacity?: number | null;
+    guestListCapacityLocked?: boolean;
+    venueId?: string | null;
+    name?: string | null;
   } = {};
+  if ('name' in body) data.name = body.name === '' || body.name == null ? null : String(body.name).trim();
   if (body.venueName != null) data.venueName = body.venueName;
   if (body.city != null) data.city = body.city;
   if (body.date != null) data.date = new Date(body.date);
@@ -46,6 +52,35 @@ export async function PATCH(
   if ('promoterPhone' in body) data.promoterPhone = body.promoterPhone === '' || body.promoterPhone == null ? null : body.promoterPhone;
   if ('promoterEmail' in body) data.promoterEmail = body.promoterEmail === '' || body.promoterEmail == null ? null : body.promoterEmail;
   if ('notes' in body) data.notes = body.notes === '' || body.notes == null ? null : body.notes;
+  const unlockInRequest = 'guestListCapacityLocked' in body && body.guestListCapacityLocked === false;
+  if ('guestListCapacity' in body && existing.guestListCapacityLocked && !unlockInRequest) {
+    return NextResponse.json(
+      { error: 'Guest list capacity is locked. Unlock it before changing or clearing the limit.' },
+      { status: 400 }
+    );
+  }
+  if ('guestListCapacity' in body) {
+    if (body.guestListCapacity == null || body.guestListCapacity === '') {
+      data.guestListCapacity = null;
+    } else {
+      const n = Number(body.guestListCapacity);
+      if (!Number.isFinite(n) || n < 0 || !Number.isInteger(n)) {
+        return NextResponse.json({ error: 'guestListCapacity must be a non-negative integer' }, { status: 400 });
+      }
+      data.guestListCapacity = n;
+    }
+  }
+  if ('guestListCapacityLocked' in body) {
+    data.guestListCapacityLocked = Boolean(body.guestListCapacityLocked);
+  }
+  if ('venueId' in body) {
+    if (body.venueId == null || body.venueId === '') data.venueId = null;
+    else {
+      const v = await prisma.venue.findUnique({ where: { id: String(body.venueId) } });
+      if (!v) return NextResponse.json({ error: 'Venue not found' }, { status: 400 });
+      data.venueId = v.id;
+    }
+  }
   if (body.city && !('timezone' in body)) {
     const { getTimezoneFromCity } = await import('@/lib/timezone');
     data.timezone = getTimezoneFromCity(body.city) || null;

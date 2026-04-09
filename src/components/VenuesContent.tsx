@@ -1,15 +1,24 @@
 'use client';
 
-import { Plus, Pencil, Search, Trash2, MapPin } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Plus, Search, Trash2, MapPin, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { googleMapsSearchUrl } from '@/lib/google-maps-url';
+import { VENUE_CATEGORY_LABELS, type VenueCategorySlug } from '@/lib/venue-category';
 
 export type VenueRow = {
   id: string;
+  category: VenueCategorySlug;
   name: string;
   city: string;
   address: string | null;
+  capacity: number | null;
   notes: string | null;
+  loadInNotes: string | null;
+  cateringNotes: string | null;
+  accessNotes: string | null;
 };
 
 export function VenuesContent({
@@ -19,16 +28,16 @@ export function VenuesContent({
   initialVenues: VenueRow[];
   allowEdit: boolean;
 }) {
+  const router = useRouter();
   const [venues, setVenues] = useState<VenueRow[]>(initialVenues);
   const [search, setSearch] = useState('');
   const [adding, setAdding] = useState(false);
-  const [editing, setEditing] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [name, setName] = useState('');
   const [city, setCity] = useState('');
   const [address, setAddress] = useState('');
-  const [notes, setNotes] = useState('');
+  const [category, setCategory] = useState<VenueCategorySlug>('venue');
 
   useEffect(() => {
     setVenues(initialVenues);
@@ -40,7 +49,13 @@ export function VenuesContent({
     return (
       v.name.toLowerCase().includes(q) ||
       v.city.toLowerCase().includes(q) ||
-      (v.address?.toLowerCase().includes(q) ?? false)
+      VENUE_CATEGORY_LABELS[v.category].toLowerCase().includes(q) ||
+      (v.address?.toLowerCase().includes(q) ?? false) ||
+      (v.notes?.toLowerCase().includes(q) ?? false) ||
+      (v.loadInNotes?.toLowerCase().includes(q) ?? false) ||
+      (v.cateringNotes?.toLowerCase().includes(q) ?? false) ||
+      (v.accessNotes?.toLowerCase().includes(q) ?? false) ||
+      (v.capacity != null && String(v.capacity).includes(q))
     );
   });
 
@@ -48,10 +63,9 @@ export function VenuesContent({
     setName('');
     setCity('');
     setAddress('');
-    setNotes('');
+    setCategory('venue');
     setError('');
     setAdding(false);
-    setEditing(null);
   }
 
   async function refreshList() {
@@ -64,35 +78,15 @@ export function VenuesContent({
     setError('');
     setLoading(true);
     try {
-      await api.venues.create({
+      const created = await api.venues.create({
         name: name.trim(),
         city: city.trim(),
+        category,
         address: address.trim() || undefined,
-        notes: notes.trim() || undefined,
       });
       await refreshList();
       resetForm();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleUpdate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!editing) return;
-    setError('');
-    setLoading(true);
-    try {
-      await api.venues.update(editing, {
-        name: name.trim(),
-        city: city.trim(),
-        address: address.trim() || null,
-        notes: notes.trim() || null,
-      });
-      await refreshList();
-      resetForm();
+      router.push(`/dashboard/venues/${created.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed');
     } finally {
@@ -106,24 +100,16 @@ export function VenuesContent({
     try {
       await api.venues.delete(id);
       await refreshList();
-      if (editing === id) resetForm();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete');
     }
   }
 
-  function startEdit(v: VenueRow) {
-    setEditing(v.id);
-    setName(v.name);
-    setCity(v.city);
-    setAddress(v.address || '');
-    setNotes(v.notes || '');
-  }
-
   return (
     <div className="space-y-4">
       <p className="text-sm text-stage-muted">
-        Reference list of places you play or might play. Tour dates still use their own venue and city fields.
+        Reference list of places you play or might play. Open a venue for its profile (contacts, load-in, catering,
+        access). Tour dates still use their own venue and city fields.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px]">
@@ -136,7 +122,7 @@ export function VenuesContent({
             className="w-full pl-9 pr-3 py-2 rounded-lg bg-stage-card border border-stage-border text-white placeholder-zinc-500"
           />
         </div>
-        {allowEdit && !adding && !editing && (
+        {allowEdit && !adding && (
           <button
             type="button"
             onClick={() => setAdding(true)}
@@ -147,12 +133,12 @@ export function VenuesContent({
         )}
       </div>
 
-      {(adding || editing) && (
+      {adding && (
         <form
-          onSubmit={editing ? handleUpdate : handleAdd}
-          className="rounded-xl bg-stage-card border border-stage-border p-4 space-y-3"
+          onSubmit={handleAdd}
+          className="rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04] p-4 space-y-3"
         >
-          <h3 className="text-sm font-medium text-white">{editing ? 'Edit venue' : 'New venue'}</h3>
+          <h3 className="text-sm font-medium text-white">New venue</h3>
           <input
             type="text"
             value={name}
@@ -176,13 +162,18 @@ export function VenuesContent({
             placeholder="Address (optional)"
             className="w-full px-3 py-2 rounded-lg bg-stage-surface border border-stage-border text-white placeholder-zinc-500"
           />
-          <input
-            type="text"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Notes (capacity, load-in, etc.)"
-            className="w-full px-3 py-2 rounded-lg bg-stage-surface border border-stage-border text-white placeholder-zinc-500"
-          />
+          <label className="block space-y-1">
+            <span className="text-xs text-stage-muted">Category</span>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value as VenueCategorySlug)}
+              className="w-full px-3 py-2 rounded-lg bg-stage-surface border border-stage-border text-white"
+            >
+              <option value="venue">{VENUE_CATEGORY_LABELS.venue}</option>
+              <option value="festival">{VENUE_CATEGORY_LABELS.festival}</option>
+            </select>
+          </label>
+          <p className="text-xs text-stage-muted">After adding, you’ll open the venue profile for detailed notes and contacts.</p>
           {error && <p className="text-red-400 text-sm">{error}</p>}
           <div className="flex gap-2">
             <button
@@ -190,7 +181,7 @@ export function VenuesContent({
               disabled={loading}
               className="px-4 py-2 rounded-lg bg-stage-accent text-stage-accentFg font-medium disabled:opacity-50"
             >
-              {loading ? 'Saving…' : editing ? 'Save' : 'Add'}
+              {loading ? 'Saving…' : 'Add & open profile'}
             </button>
             <button type="button" onClick={resetForm} className="px-4 py-2 rounded-lg border border-stage-border text-stage-muted">
               Cancel
@@ -199,9 +190,9 @@ export function VenuesContent({
         </form>
       )}
 
-      {!adding && !editing && error && <p className="text-red-400 text-sm">{error}</p>}
+      {!adding && error && <p className="text-red-400 text-sm">{error}</p>}
 
-      <div className="rounded-xl bg-stage-card border border-stage-border overflow-hidden">
+      <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 overflow-hidden ring-1 ring-white/[0.04]">
         {filtered.length === 0 ? (
           <div className="p-6 text-center text-stage-muted text-sm">
             {venues.length === 0 ? 'No venues yet' : 'No matches'}
@@ -209,31 +200,46 @@ export function VenuesContent({
         ) : (
           <ul className="divide-y divide-stage-border">
             {filtered.map((v) => (
-              <li key={v.id} className="p-4 flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="font-medium text-white">{v.name}</p>
-                  <p className="flex items-center gap-1.5 text-sm text-stage-muted mt-0.5">
-                    <MapPin className="h-3.5 w-3.5 shrink-0" />
-                    {v.city}
-                  </p>
-                  {v.address && <p className="text-sm text-zinc-400 mt-1">{v.address}</p>}
-                  {v.notes && <p className="text-sm text-zinc-400 mt-1">{v.notes}</p>}
+              <li key={v.id} className="flex items-stretch divide-x divide-stage-border/50">
+                <div className="flex-1 min-w-0">
+                  <Link
+                    href={`/dashboard/venues/${v.id}`}
+                    className="block p-4 hover:bg-stage-surface/50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-white">
+                          {v.name}
+                          <span className="font-normal text-stage-muted"> · {VENUE_CATEGORY_LABELS[v.category]}</span>
+                        </p>
+                        <p className="flex items-center gap-1.5 text-sm text-stage-muted mt-0.5">
+                          <MapPin className="h-3.5 w-3.5 shrink-0" />
+                          {v.city}
+                        </p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-stage-muted shrink-0 mt-0.5" aria-hidden />
+                    </div>
+                  </Link>
+                  {v.address && (
+                    <div className="px-4 pb-4 -mt-1">
+                      <a
+                        href={googleMapsSearchUrl(v.address, v.city)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-zinc-400 hover:text-stage-accent hover:underline"
+                      >
+                        {v.address}
+                      </a>
+                    </div>
+                  )}
                 </div>
                 {allowEdit && (
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => startEdit(v)}
-                      className="p-1.5 rounded text-stage-muted hover:text-stage-accent hover:bg-stage-surface"
-                      aria-label="Edit"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
+                  <div className="flex items-center gap-1 shrink-0 px-3">
                     <button
                       type="button"
                       onClick={() => handleDelete(v.id)}
                       className="p-1.5 rounded text-stage-muted hover:text-red-400 hover:bg-stage-surface"
-                      aria-label="Delete"
+                      aria-label="Delete venue"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

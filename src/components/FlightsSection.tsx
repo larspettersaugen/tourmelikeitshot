@@ -4,6 +4,7 @@ import { Plane, Plus, Search, Users, ChevronDown, ChevronUp, Pencil } from 'luci
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { shortPassengerLabels } from '@/lib/short-passenger-labels';
 import { format } from 'date-fns';
 
 type FlightPassenger = {
@@ -486,12 +487,14 @@ export function FlightsSection({
     }
   }
 
+  const pendingPassengerDisplayLabels = shortPassengerLabels(pendingPassengers.map((p) => p.name));
+
   return (
     <section>
-      <h3 className="text-sm font-semibold text-zinc-400 flex items-center gap-2 mb-3">
+      <h3 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2 mb-3">
         <Plane className="h-4 w-4" /> Flights
       </h3>
-      <div className="rounded-xl bg-stage-card border border-stage-border overflow-hidden">
+      <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 overflow-hidden ring-1 ring-white/[0.04]">
         {flights.length === 0 && !adding ? (
           <div className="p-6 text-center text-stage-muted text-sm">No flights</div>
         ) : (
@@ -501,6 +504,7 @@ export function FlightsSection({
               const onThisFlight = new Set(f.passengers.map((p) => p.travelGroupMemberId));
               const availableToAdd = travelingGroup.filter((m) => !onThisFlight.has(m.id));
               const isAdding = addingToFlightId === f.id;
+              const passengerLabels = shortPassengerLabels(f.passengers.map((p) => p.name));
               return (
                 <li key={f.id} className="p-4">
                   <div className="flex items-start justify-between gap-2">
@@ -686,7 +690,7 @@ export function FlightsSection({
                         )
                       ) : (
                         <ul className="space-y-2">
-                          {f.passengers.map((p) => (
+                          {f.passengers.map((p, idx) => (
                             <li key={p.id} className="flex items-center gap-3 text-sm">
                               {allowEdit && editingPeopleFlightId === f.id && (
                                 <input
@@ -697,7 +701,7 @@ export function FlightsSection({
                                   aria-label={`Select ${p.name}`}
                                 />
                               )}
-                              <span className="text-white">{p.name}</span>
+                              <span className="text-white">{passengerLabels[idx] ?? p.name}</span>
                               {editingPeopleFlightId === f.id && allowEdit ? (
                                 <input
                                   type="text"
@@ -822,9 +826,9 @@ export function FlightsSection({
                 </h4>
                 {pendingPassengers.length > 0 && (
                   <ul className="space-y-2">
-                    {pendingPassengers.map((p) => (
+                    {pendingPassengers.map((p, idx) => (
                       <li key={p.travelGroupMemberId} className="flex items-center justify-between gap-2 text-sm">
-                        <span className="text-white">{p.name}</span>
+                        <span className="text-white">{pendingPassengerDisplayLabels[idx] ?? p.name}</span>
                         {p.bookingRef && <span className="text-stage-muted text-xs">{p.bookingRef}</span>}
                         <button
                           type="button"

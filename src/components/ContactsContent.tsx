@@ -11,13 +11,19 @@ type VenueContact = {
   phone: string | null;
   email: string | null;
   notes: string | null;
+  venueId: string | null;
+  venue: { id: string; name: string; city: string } | null;
 };
+
+type VenueOption = { id: string; name: string; city: string };
 
 export function ContactsContent({
   initialContacts,
+  initialVenues,
   allowEdit,
 }: {
   initialContacts: VenueContact[];
+  initialVenues: VenueOption[];
   allowEdit: boolean;
 }) {
   const [contacts, setContacts] = useState<VenueContact[]>(initialContacts);
@@ -31,6 +37,7 @@ export function ContactsContent({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [notes, setNotes] = useState('');
+  const [venueId, setVenueId] = useState<string>('');
 
   useEffect(() => {
     setContacts(initialContacts);
@@ -46,6 +53,7 @@ export function ContactsContent({
     setPhone('');
     setEmail('');
     setNotes('');
+    setVenueId('');
     setError('');
     setAdding(false);
     setEditing(null);
@@ -62,6 +70,7 @@ export function ContactsContent({
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
         notes: notes.trim() || undefined,
+        venueId: venueId.trim() || null,
       });
       const list = await api.venueContacts.list();
       setContacts(list);
@@ -85,6 +94,7 @@ export function ContactsContent({
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
         notes: notes.trim() || undefined,
+        venueId: venueId.trim() || null,
       });
       const list = await api.venueContacts.list();
       setContacts(list);
@@ -103,6 +113,7 @@ export function ContactsContent({
     setPhone(c.phone || '');
     setEmail(c.email || '');
     setNotes(c.notes || '');
+    setVenueId(c.venueId || '');
   }
 
   return (
@@ -121,7 +132,10 @@ export function ContactsContent({
         {allowEdit && !adding && !editing && (
           <button
             type="button"
-            onClick={() => setAdding(true)}
+            onClick={() => {
+              resetForm();
+              setAdding(true);
+            }}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-stage-accent text-stage-accentFg font-medium hover:opacity-90"
           >
             <Plus className="h-4 w-4" /> Add contact
@@ -132,7 +146,7 @@ export function ContactsContent({
       {(adding || editing) && (
         <form
           onSubmit={editing ? handleUpdate : handleAdd}
-          className="rounded-xl bg-stage-card border border-stage-border p-4 space-y-3"
+          className="rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04] p-4 space-y-3"
         >
           <h3 className="text-sm font-medium text-white">
             {editing ? 'Edit venue contact' : 'New venue contact'}
@@ -173,6 +187,21 @@ export function ContactsContent({
             placeholder="Notes"
             className="w-full px-3 py-2 rounded-lg bg-stage-surface border border-stage-border text-white placeholder-zinc-500"
           />
+          <label className="block">
+            <span className="text-xs text-stage-muted block mb-1">Linked venue (optional)</span>
+            <select
+              value={venueId}
+              onChange={(e) => setVenueId(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg bg-stage-surface border border-stage-border text-white"
+            >
+              <option value="">— None —</option>
+              {initialVenues.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}, {v.city}
+                </option>
+              ))}
+            </select>
+          </label>
           {error && <p className="text-red-400 text-sm">{error}</p>}
           <div className="flex gap-2">
             <button
@@ -193,7 +222,7 @@ export function ContactsContent({
         </form>
       )}
 
-      <div className="rounded-xl bg-stage-card border border-stage-border overflow-hidden">
+      <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 overflow-hidden ring-1 ring-white/[0.04]">
         {filtered.length === 0 ? (
           <div className="p-6 text-center text-stage-muted text-sm">
             {contacts.length === 0 ? 'No venue contacts yet' : 'No matches'}
@@ -227,6 +256,11 @@ export function ContactsContent({
                       </a>
                     )}
                   </div>
+                  {c.venue && (
+                    <p className="text-xs text-stage-muted mt-1">
+                      Venue: {c.venue.name}, {c.venue.city}
+                    </p>
+                  )}
                   {c.notes && <p className="text-sm text-zinc-400 mt-1">{c.notes}</p>}
                 </div>
                 {allowEdit && (

@@ -1,9 +1,10 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getSession } from '@/lib/session';
+import { getCachedSession } from '@/lib/cached-session';
 import { prisma } from '@/lib/prisma';
 import { PeoplePageTabs } from '@/components/PeoplePageTabs';
 import { canEdit } from '@/lib/session';
+import { checkboxesFromUserRole } from '@/lib/person-linked-role';
 import { getBetaJoinSecret, isBetaJoinEnabled } from '@/lib/beta-join';
 import { getPublicAppBaseUrl } from '@/lib/public-app-url';
 
@@ -12,7 +13,7 @@ export default async function PeoplePage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
-  const session = await getSession();
+  const session = await getCachedSession();
   if (!session?.user) redirect('/login');
   if ((session.user as { role?: string }).role === 'viewer') redirect('/dashboard');
 
@@ -23,6 +24,9 @@ export default async function PeoplePage({
     orderBy: [{ type: 'asc' }, { name: 'asc' }],
     select: {
       id: true,
+      firstName: true,
+      middleName: true,
+      lastName: true,
       name: true,
       type: true,
       birthdate: true,
@@ -44,6 +48,9 @@ export default async function PeoplePage({
   });
   const people = peopleRaw.map((p) => ({
     id: p.id,
+    firstName: p.firstName,
+    middleName: p.middleName,
+    lastName: p.lastName,
     name: p.name,
     type: p.type,
     birthdate: p.birthdate?.toISOString() ?? null,
@@ -55,9 +62,14 @@ export default async function PeoplePage({
     timezone: p.timezone,
     notes: p.notes,
     userId: p.userId,
-    isPowerUser: p.user
-      ? p.user.role === 'power_user' || p.user.role === 'editor' || p.user.role === 'admin'
-      : false,
+    ...(() => {
+      const f = checkboxesFromUserRole(p.user?.role);
+      return {
+        isBookingAdmin: f.isBookingAdmin,
+        isPowerUser: f.isPowerUser,
+        linkedRoleLocked: f.linkedRoleLocked,
+      };
+    })(),
     hasPendingInvite: p.invites.length > 0,
   }));
 

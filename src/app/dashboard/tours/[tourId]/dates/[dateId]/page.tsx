@@ -1,37 +1,42 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { getSession } from '@/lib/session';
+import { getCachedSession } from '@/lib/cached-session';
 import { prisma } from '@/lib/prisma';
+import { getTourWithDatesOrdered } from '@/lib/cached-tour-dashboard';
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { TourDayView } from '@/components/TourDayView';
 import { DateInfo } from '@/components/DateInfo';
 import { DateNavTabs } from '@/components/DateNavTabs';
 import { PrintDaySheetButton } from '@/components/PrintDaySheetButton';
-import { canEdit, canAccessAdvance, canEditAdvance } from '@/lib/session';
+import { canEdit, canAccessAdvance, canEditAdvance, canViewTasks } from '@/lib/session';
 import { isReadyForAdvanceComplete } from '@/lib/advance-complete';
+import { advanceSelectForComplete } from '@/lib/advance-for-complete';
+import { tourDateDisplayName } from '@/lib/tour-date-display';
+import {
+  cachedUserCanOpenTourDateDetail,
+  getCachedTourDateAccess,
+  adjacentOpenTourDates,
+} from '@/lib/tour-date-access';
+import { canBypassTourAssignment } from '@/lib/viewer-access';
 
 export default async function TourDateDetailPage({
   params,
 }: {
   params: Promise<{ tourId: string; dateId: string }>;
 }) {
-  const session = await getSession();
+  const session = await getCachedSession();
   if (!session?.user) redirect('/login');
   const { tourId, dateId } = await params;
 
-  const tour = await prisma.tour.findUnique({
-    where: { id: tourId },
-    include: { dates: { orderBy: { date: 'asc' } } },
-  });
-  if (!tour) redirect('/dashboard');
-
-  const selectedDate = tour.dates.find((d) => d.id === dateId);
-  if (!selectedDate) redirect(`/dashboard/tours/${tourId}`);
-
+  const role = (session.user as { role?: string }).role;
   const userId = (session.user as { id?: string }).id;
 
-  const [schedule, transportRaw, hotelsRaw, flightsRaw, viewerPersonId, contacts, travelingGroup, advanceForComplete, taskRowsForComplete] =
+  const [tour, , schedule, transportRaw, hotelsRaw, flightsRaw, viewerPersonId, contacts, travelingGroup, advanceForComplete, taskRowsForComplete] =
     await Promise.all([
+    getTourWithDatesOrdered(tourId),
+    cachedUserCanOpenTourDateDetail(userId, role, tourId, dateId).then((ok) => {
+      if (!ok) redirect(`/dashboard/tours/${tourId}?noDateAccess=1`);
+    }),
     prisma.scheduleItem.findMany({
       where: { tourDateId: dateId },
       orderBy: { time: 'asc' },
@@ -81,12 +86,19 @@ export default async function TourDateDetailPage({
       where: { tourId },
       orderBy: { name: 'asc' },
     }),
-    prisma.advance.findUnique({ where: { tourDateId: dateId } }),
+    prisma.advance.findUnique({
+      where: { tourDateId: dateId },
+      select: advanceSelectForComplete,
+    }),
     prisma.tourDateTask.findMany({
       where: { tourDateId: dateId },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     }),
   ]);
+  if (!tour) redirect('/dashboard');
+
+  const selectedDate = tour.dates.find((d) => d.id === dateId);
+  if (!selectedDate) redirect(`/dashboard/tours/${tourId}`);
   const hotels = hotelsRaw.map((h) => ({
     id: h.id,
     name: h.name,
@@ -122,9 +134,8 @@ export default async function TourDateDetailPage({
     })),
   }));
   const viewerRole = (session.user as { role?: string }).role;
-  const hasExtendedAccess = viewerRole === 'admin' || viewerRole === 'editor' || viewerRole === 'power_user';
   const isTourManager = viewerPersonId?.type === 'tour_manager';
-  const seeAllFlightsInSchedule = hasExtendedAccess || isTourManager;
+  const seeAllFlightsInSchedule = canBypassTourAssignment(viewerRole) || isTourManager;
   const flights = flightsRaw.map((f) => ({
     id: f.id,
     tourDateId: f.tourDateId,
@@ -161,18 +172,22 @@ export default async function TourDateDetailPage({
 
   const sessionRole = (session.user as { role?: string }).role;
   const allowEdit = canEdit(sessionRole);
-  const advanceReady = isReadyForAdvanceComplete(advanceForComplete, taskRowsForComplete);
+  const advanceReady = isReadyForAdvanceComplete(
+    advanceForComplete,
+    canViewTasks(role) ? taskRowsForComplete : []
+  );
 
-  const currentIndex = tour.dates.findIndex((d) => d.id === dateId);
-  const prevDate = currentIndex > 0 ? tour.dates[currentIndex - 1] : null;
-  const nextDate = currentIndex >= 0 && currentIndex < tour.dates.length - 1 ? tour.dates[currentIndex + 1] : null;
+  const dateAccess = userId
+    ? await getCachedTourDateAccess(userId, role, tourId)
+    : { openAllDates: false, openDateIds: new Set<string>() };
+  const { prev: prevDate, next: nextDate } = adjacentOpenTourDates(tour.dates, dateId, dateAccess);
 
   return (
     <div className="w-full max-w-6xl mx-auto p-6 lg:p-8 pb-24 lg:pb-8">
       <div className="flex items-center justify-between gap-4 mb-4 print:hidden">
         <Link
           href={`/dashboard/tours/${tourId}`}
-          className="inline-flex items-center gap-2 text-stage-muted hover:text-stage-fg"
+          className="inline-flex items-center gap-2 text-stage-muted hover:text-stage-neonCyan transition-colors"
         >
           <ArrowLeft className="h-4 w-4" /> {tour.name}
         </Link>
@@ -181,7 +196,7 @@ export default async function TourDateDetailPage({
             {prevDate && (
               <Link
                 href={`/dashboard/tours/${tourId}/dates/${prevDate.id}`}
-                className="flex items-center gap-1.5 text-stage-muted hover:text-stage-fg transition text-sm"
+                className="flex items-center gap-1.5 text-stage-muted hover:text-stage-neonCyan transition-colors text-sm"
               >
                 <ChevronLeft className="h-4 w-4" /> Previous
               </Link>
@@ -189,7 +204,7 @@ export default async function TourDateDetailPage({
             {nextDate && (
               <Link
                 href={`/dashboard/tours/${tourId}/dates/${nextDate.id}`}
-                className="flex items-center gap-1.5 text-stage-muted hover:text-stage-fg transition text-sm"
+                className="flex items-center gap-1.5 text-stage-muted hover:text-stage-neonCyan transition-colors text-sm"
               >
                 Next <ChevronRight className="h-4 w-4" />
               </Link>
@@ -200,6 +215,8 @@ export default async function TourDateDetailPage({
       <DateInfo
         tourId={tourId}
         dateId={dateId}
+        dateName={selectedDate.name}
+        linkedVenueId={selectedDate.venueId}
         venueName={selectedDate.venueName}
         city={selectedDate.city}
         date={selectedDate.date.toISOString()}
@@ -227,12 +244,22 @@ export default async function TourDateDetailPage({
         hideAllTourMessage={sessionRole === 'viewer'}
       />
 
-      <DateNavTabs tourId={tourId} dateId={dateId} active="day" allowAdvance={canAccessAdvance(sessionRole)} />
+      <DateNavTabs
+        tourId={tourId}
+        dateId={dateId}
+        active="day"
+        allowAdvance={canAccessAdvance(sessionRole)}
+        showTasks={canViewTasks(sessionRole)}
+      />
 
       <TourDayView
         tourId={tourId}
         dateId={dateId}
-        dateLabel={`${selectedDate.venueName}, ${selectedDate.city}`}
+        dateLabel={tourDateDisplayName({
+          name: selectedDate.name,
+          venueName: selectedDate.venueName,
+          city: selectedDate.city,
+        })}
         date={selectedDate.date.toISOString().slice(0, 10)}
         schedule={schedule}
         flights={flightsOnThisDate}

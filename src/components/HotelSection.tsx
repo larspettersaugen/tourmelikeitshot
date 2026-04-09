@@ -314,10 +314,10 @@ export function HotelSection({
 
   return (
     <section>
-      <h3 className="text-sm font-semibold text-zinc-400 flex items-center gap-2 mb-3">
-        <Building2 className="h-4 w-4" /> Hotel
+      <h3 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2 mb-3">
+        <Building2 className="h-4 w-4 opacity-90" /> Hotel
       </h3>
-      <div className="rounded-xl bg-stage-card border border-stage-border overflow-hidden">
+      <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 overflow-hidden shadow-card-inset ring-1 ring-white/[0.04]">
         {items.length === 0 && !adding ? (
           <div className="p-6 text-center text-stage-muted text-sm">No hotel</div>
         ) : (

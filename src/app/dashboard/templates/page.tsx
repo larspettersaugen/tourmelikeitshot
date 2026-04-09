@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation';
-import { getSession } from '@/lib/session';
+import { getCachedSession } from '@/lib/cached-session';
 import { prisma } from '@/lib/prisma';
 import { FileStack } from 'lucide-react';
 import { canEdit } from '@/lib/session';
 import { TemplatesContent } from '@/components/TemplatesContent';
 
 export default async function TemplatesPage() {
-  const session = await getSession();
+  const session = await getCachedSession();
   if (!session?.user) redirect('/login');
   const role = (session.user as { role?: string }).role;
   if (role === 'viewer') redirect('/dashboard');

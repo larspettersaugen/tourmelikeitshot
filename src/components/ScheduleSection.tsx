@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { Plane, Car } from 'lucide-react';
 import { format, addDays } from 'date-fns';
+import { shortPassengerLabels } from '@/lib/short-passenger-labels';
 
 /** Parse duration: "1:30" -> 90, "30" -> 30, "0:45" -> 45 */
 function parseDurationInput(str: string): number | null {
@@ -43,43 +44,6 @@ function addMinutesToTime(time: string, minutes: number): string {
   const nh = Math.floor(total / 60) % 24;
   const nm = total % 60;
   return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
-}
-
-/**
- * Last word = surname; everything before = given name(s).
- * e.g. "Lars Petter Saugen" → given "Lars Petter", initial from "Saugen".
- */
-function parseNameParts(fullName: string): { given: string; surnameInitial: string | null } {
-  const t = fullName.trim();
-  if (!t) return { given: '', surnameInitial: null };
-  const parts = t.split(/\s+/).filter(Boolean);
-  if (parts.length === 1) return { given: parts[0], surnameInitial: null };
-  const surname = parts[parts.length - 1];
-  const given = parts.slice(0, -1).join(' ');
-  const ch = surname[0];
-  const surnameInitial =
-    ch && /[A-Za-z\u00C0-\u024F]/.test(ch) ? ch.toUpperCase() : null;
-  return { given, surnameInitial };
-}
-
-/** Given name(s) only; "Lars Petter S." when the same given string repeats on this flight/leg. */
-function shortPassengerLabels(allFullNames: string[]): string[] {
-  const parsed = allFullNames.map((full) => ({ full, ...parseNameParts(full) }));
-  const givenCounts = new Map<string, number>();
-  for (const p of parsed) {
-    if (!p.given) continue;
-    const key = p.given.toLowerCase();
-    givenCounts.set(key, (givenCounts.get(key) ?? 0) + 1);
-  }
-  return parsed.map((p) => {
-    if (!p.given) return p.full || '';
-    const dup = (givenCounts.get(p.given.toLowerCase()) ?? 0) > 1;
-    if (dup) {
-      if (p.surnameInitial) return `${p.given} ${p.surnameInitial}.`;
-      return p.full;
-    }
-    return p.given;
-  });
 }
 
 type Item = {
@@ -462,10 +426,10 @@ export function ScheduleSection({
 
   return (
     <section>
-      <h2 className="text-sm font-semibold text-zinc-400 flex items-center gap-2 mb-3">
-        <Clock className="h-4 w-4" /> Schedule
+      <h2 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2 mb-3">
+        <Clock className="h-4 w-4 opacity-90" /> Schedule
       </h2>
-      <div className="rounded-xl bg-stage-card border border-stage-border overflow-hidden">
+      <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 overflow-hidden shadow-card-inset ring-1 ring-white/[0.04]">
         {allowEdit && (templates.length > 0 || items.length > 0) && (
           <div className="p-3 border-b border-stage-border flex flex-wrap items-center gap-2">
             {templates.length > 0 && (
@@ -543,7 +507,7 @@ export function ScheduleSection({
                   <li key={entry.item.id} className="p-4 flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0 flex items-start gap-3">
                       <div className="flex flex-col shrink-0 font-mono text-sm tabular-nums">
-                        <span className="text-stage-accent">{entry.item.time}</span>
+                        <span className="text-stage-neonCyan font-medium">{entry.item.time}</span>
                         {entry.item.endTime && (
                           <span className="text-stage-muted">{entry.item.endTime}</span>
                         )}
@@ -590,7 +554,7 @@ export function ScheduleSection({
               ) : entry.type === 'flight' ? (
                 <li key={entry.flight.id} className="p-4 flex items-start justify-between gap-2">
                   <div>
-                    <span className="font-mono text-stage-accent text-sm">
+                    <span className="font-mono text-stage-neonCyan text-sm font-medium">
                       {format(new Date(entry.flight.departureTime), 'HH:mm')}
                     </span>
                     <span className="ml-3 font-medium text-white inline-flex items-center gap-2 flex-wrap">
@@ -646,7 +610,7 @@ export function ScheduleSection({
               ) : (
                 <li key={entry.transport.id} className="p-4 flex items-start justify-between gap-2">
                   <div>
-                    <span className="font-mono text-stage-accent text-sm">{entry.transport.time}</span>
+                    <span className="font-mono text-stage-neonCyan text-sm font-medium">{entry.transport.time}</span>
                     <span className="ml-3 font-medium text-white inline-flex items-center gap-2 flex-wrap capitalize">
                       <Car className="h-4 w-4 text-stage-muted" />
                       {entry.transport.type}

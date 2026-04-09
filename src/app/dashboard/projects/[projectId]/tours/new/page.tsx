@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { api } from '@/lib/api';
+import { tryShowDatePicker } from '@/lib/date-input-show-picker';
 
 export default function NewTourPage() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export default function NewTourPage() {
     <div className="w-full max-w-2xl mx-auto p-6 lg:p-8 pb-8">
       <Link
         href={`/dashboard/projects/${projectId}`}
-        className="inline-flex items-center gap-2 text-stage-muted hover:text-stage-fg mb-6"
+        className="inline-flex items-center gap-2 text-stage-muted hover:text-stage-neonCyan transition-colors mb-6"
       >
         <ArrowLeft className="h-4 w-4" /> Back
       </Link>
@@ -69,6 +70,7 @@ export default function NewTourPage() {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
+              onClick={(e) => tryShowDatePicker(e.currentTarget)}
               max={endDate || undefined}
               className="w-full px-3 py-2 rounded-lg bg-stage-card border border-stage-border text-white"
             />
@@ -79,6 +81,7 @@ export default function NewTourPage() {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
+              onClick={(e) => tryShowDatePicker(e.currentTarget)}
               min={startDate || undefined}
               className="w-full px-3 py-2 rounded-lg bg-stage-card border border-stage-border text-white"
             />

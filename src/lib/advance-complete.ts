@@ -5,15 +5,20 @@ export type AdvanceDoneFlags = {
   equipmentTransportDone: boolean;
 };
 
-/** All four advance checklist "Done" flags are true (compromises don't block). */
-export function areAllAdvanceSectionsDone(advance: AdvanceDoneFlags | null): boolean {
+export type AdvanceForCompleteCheck = AdvanceDoneFlags & {
+  customFields?: { done: boolean }[];
+};
+
+/** All standard + custom advance checklist "Done" flags are true (compromises don't block). */
+export function areAllAdvanceSectionsDone(advance: AdvanceForCompleteCheck | null): boolean {
   if (!advance) return false;
-  return (
+  const standard =
     advance.technicalDone &&
     advance.riderDone &&
     advance.logisticsDone &&
-    advance.equipmentTransportDone
-  );
+    advance.equipmentTransportDone;
+  const customs = advance.customFields ?? [];
+  return standard && customs.every((c) => c.done);
 }
 
 /** Every task is done; dates with zero tasks count as satisfied. */
@@ -23,7 +28,7 @@ export function areAllTasksDone(tasks: { done: boolean }[]): boolean {
 }
 
 export function isReadyForAdvanceComplete(
-  advance: AdvanceDoneFlags | null,
+  advance: AdvanceForCompleteCheck | null,
   tasks: { done: boolean }[]
 ): boolean {
   return areAllAdvanceSectionsDone(advance) && areAllTasksDone(tasks);

@@ -39,10 +39,10 @@ export function DayNotesSection({
 
   return (
     <section>
-      <h2 className="text-sm font-semibold text-zinc-400 flex items-center gap-2 mb-3">
-        <FileText className="h-4 w-4" /> Day notes
+      <h2 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2 mb-3">
+        <FileText className="h-4 w-4 opacity-90" /> Day notes
       </h2>
-      <div className="rounded-xl bg-stage-card border border-stage-border overflow-hidden">
+      <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 overflow-hidden shadow-card-inset ring-1 ring-white/[0.04]">
         {allowEdit ? (
           <div className="p-4 space-y-3">
             <textarea

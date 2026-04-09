@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
+import { requireTourDateReadAccess } from '@/lib/tour-date-access-api';
+import { hasFullTourCatalogAccess } from '@/lib/viewer-access';
 
 export async function GET(
   _req: Request,
@@ -8,7 +10,14 @@ export async function GET(
 ) {
   const session = await getSession();
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const { dateId, transportId } = await params;
+  const { tourId, dateId, transportId } = await params;
+  const denied = await requireTourDateReadAccess(
+    session.user.id,
+    (session.user as { role?: string }).role,
+    tourId,
+    dateId
+  );
+  if (denied) return denied;
   const transport = await prisma.transport.findFirst({
     where: { id: transportId, tourDateId: dateId },
     include: {
@@ -38,7 +47,7 @@ export async function POST(
   const session = await getSession();
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const role = (session.user as { role?: string }).role;
-  if (role !== 'admin' && role !== 'editor') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!hasFullTourCatalogAccess(role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { tourId, dateId, transportId } = await params;
   const transport = await prisma.transport.findFirst({
     where: { id: transportId, tourDateId: dateId },

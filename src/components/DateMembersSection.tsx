@@ -241,7 +241,7 @@ export function DateMembersSection({
       return <div className="text-left">{empty}</div>;
     }
     return (
-      <div className="rounded-xl bg-stage-card border border-stage-border p-4">
+      <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04] p-4">
         {empty}
       </div>
     );
@@ -275,7 +275,7 @@ export function DateMembersSection({
         role="dialog"
         aria-modal="true"
         aria-labelledby="date-members-modal-title"
-        className="w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col rounded-xl bg-stage-card border border-stage-border shadow-xl"
+        className="w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04] shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3 p-4 border-b border-stage-border">
@@ -406,7 +406,7 @@ export function DateMembersSection({
   }
 
   return (
-    <div className="rounded-xl bg-stage-card border border-stage-border overflow-hidden">
+    <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 overflow-hidden ring-1 ring-white/[0.04]">
       <div className="p-3 border-b border-stage-border">{compact}</div>
       {modal}
     </div>

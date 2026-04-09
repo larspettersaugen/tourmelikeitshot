@@ -1,7 +1,8 @@
 'use client';
 
 import { MapPin, Pencil, Calendar, User, Phone, Mail, Plus, UserPlus, PenLine, ChevronRight, ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { format } from 'date-fns';
@@ -12,6 +13,8 @@ import { ShowStatusBadge } from './ShowStatusBadge';
 import { DateAdvanceCompleteInline } from './DateAdvanceCompleteInline';
 import { SHOW_STATUSES } from '@/lib/show-status';
 import { DATE_KINDS, getDateKindLabel } from '@/lib/date-kind';
+import { tourDateDisplayName } from '@/lib/tour-date-display';
+import { tryShowDatePicker } from '@/lib/date-input-show-picker';
 
 function googleMapsSearchUrl(query: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
@@ -48,9 +51,15 @@ export function DateInfo({
   advanceComplete,
   advanceReady,
   allowAdvanceComplete,
+  linkedVenueId,
+  dateName,
 }: {
   tourId: string;
   dateId: string;
+  /** Optional label for this day (tour date name). UI falls back to venue + city when null. */
+  dateName?: string | null;
+  /** Saved venue profile linked to this show date */
+  linkedVenueId?: string | null;
   venueName: string;
   city: string;
   date: string;
@@ -92,12 +101,17 @@ export function DateInfo({
   const [vPromoterName, setVPromoterName] = useState(promoterName ?? '');
   const [vPromoterPhone, setVPromoterPhone] = useState(promoterPhone ?? '');
   const [vPromoterEmail, setVPromoterEmail] = useState(promoterEmail ?? '');
+  const [vDateName, setVDateName] = useState(dateName ?? '');
   /** People, contacts, promoter — collapsed by default */
   const [detailsExpanded, setDetailsExpanded] = useState(false);
 
-  const displayName = `${venueName}, ${city}`;
+  const displayName = tourDateDisplayName({ name: dateName, venueName, city });
   const locationQuery = address?.trim() ? address : `${venueName}, ${city}`;
   const mapsUrl = googleMapsSearchUrl(locationQuery);
+
+  useEffect(() => {
+    setVDateName(dateName ?? '');
+  }, [dateName]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -105,6 +119,7 @@ export function DateInfo({
     setLoading(true);
     try {
       await api.dates.update(tourId, dateId, {
+        name: vDateName.trim() || null,
         venueName: vName.trim(),
         city: vCity.trim(),
         date: new Date(vDate).toISOString(),
@@ -135,6 +150,7 @@ export function DateInfo({
     setVPromoterName(promoterName ?? '');
     setVPromoterPhone(promoterPhone ?? '');
     setVPromoterEmail(promoterEmail ?? '');
+    setVDateName(dateName ?? '');
     setEditing(false);
     setError('');
   }
@@ -224,10 +240,21 @@ export function DateInfo({
 
   if (editing && allowEdit) {
     return (
-      <div className="rounded-xl bg-stage-card border border-stage-border p-4 mb-6">
+      <div className="rounded-2xl bg-stage-card border border-stage-neonCyan/15 shadow-glow-cyan-sm p-4 sm:p-6 mb-6">
         <form onSubmit={handleSave} className="space-y-3">
           <div>
-            <label className="block text-xs text-stage-muted mb-1">Name</label>
+            <label className="block text-xs text-stage-muted mb-1">Name (tour date)</label>
+            <input
+              type="text"
+              value={vDateName}
+              onChange={(e) => setVDateName(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg bg-stage-surface border border-stage-border text-white placeholder-zinc-500"
+              placeholder="e.g. Oslo release show"
+            />
+            <p className="text-xs text-stage-muted mt-1">Leave empty to use venue + city as the title.</p>
+          </div>
+          <div>
+            <label className="block text-xs text-stage-muted mb-1">Venue name</label>
             <input
               type="text"
               value={vName}
@@ -256,6 +283,7 @@ export function DateInfo({
               type="date"
               value={vDate}
               onChange={(e) => setVDate(e.target.value)}
+              onClick={(e) => tryShowDatePicker(e.currentTarget)}
               required
               className="w-full px-3 py-2 rounded-lg bg-stage-surface border border-stage-border text-white"
             />
@@ -267,6 +295,7 @@ export function DateInfo({
                 type="date"
                 value={vEndDate}
                 onChange={(e) => setVEndDate(e.target.value)}
+                onClick={(e) => tryShowDatePicker(e.currentTarget)}
                 min={vDate}
                 className="w-full px-3 py-2 rounded-lg bg-stage-surface border border-stage-border text-white"
               />
@@ -366,14 +395,15 @@ export function DateInfo({
   }
 
   return (
-    <div className="rounded-xl bg-stage-card border border-stage-border p-4 mb-6">
+    <div className="rounded-2xl bg-gradient-to-br from-stage-card via-stage-card to-stage-surface/90 border border-stage-neonCyan/25 shadow-glow-cyan-sm p-4 sm:p-6 mb-6">
       {/* Title row: actions stay top-right; never wrap below contacts/promoter */}
+      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-stage-violet mb-2">Tour date</p>
       <div className="flex flex-nowrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
-          <h1 className="text-xl font-bold text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
             {displayName}
           </h1>
-          <span className="text-xs text-stage-muted bg-stage-surface px-2 py-0.5 rounded">
+          <span className="text-xs text-stage-muted border border-stage-neonCyan/25 bg-stage-neonCyan/5 px-2 py-0.5 rounded-md">
             {getDateKindLabel(kind)}
           </span>
           <ShowStatusBadge status={status} />
@@ -393,7 +423,7 @@ export function DateInfo({
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-stage-border text-stage-muted hover:text-stage-fg hover:border-stage-muted"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-stage-border text-stage-muted hover:text-stage-neonCyan hover:border-stage-neonCyan/40"
               aria-label="Edit date info"
             >
               <Pencil className="h-4 w-4" />
@@ -403,8 +433,8 @@ export function DateInfo({
         </div>
       </div>
 
-      <p className="text-stage-muted text-sm mt-3 flex items-center gap-1.5">
-        <Calendar className="h-4 w-4" />
+      <p className="text-stage-muted text-sm mt-4 flex items-center gap-2">
+        <Calendar className="h-4 w-4 shrink-0 text-stage-neonCyan" aria-hidden />
         {endDate
           ? `${format(new Date(date), 'EEEE, MMMM d, yyyy')} – ${format(new Date(endDate), 'EEEE, MMMM d, yyyy')}`
           : format(new Date(date), 'EEEE, MMMM d, yyyy')}
@@ -414,11 +444,19 @@ export function DateInfo({
           href={mapsUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-sm text-stage-accent hover:underline w-fit"
+          className="inline-flex items-center gap-1.5 text-sm text-stage-neonCyan hover:underline w-fit"
         >
           <MapPin className="h-4 w-4 shrink-0" aria-hidden />
           View on Google Maps
         </a>
+        {linkedVenueId ? (
+          <Link
+            href={`/dashboard/venues/${linkedVenueId}`}
+            className="inline-flex items-center gap-1.5 text-sm text-stage-neonCyan hover:underline w-fit"
+          >
+            Venue profile
+          </Link>
+        ) : null}
         <button
           type="button"
           onClick={() => setDetailsExpanded((o) => !o)}

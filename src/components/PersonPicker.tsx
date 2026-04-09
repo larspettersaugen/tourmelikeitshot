@@ -29,10 +29,13 @@ export function PersonPicker({
   const [people, setPeople] = useState<Person[]>([]);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const multiSelect = !!onSelectMultiple;
   const availablePeople = people;
+
+  const excludeKey = [...excludePersonIds].sort().join('|');
 
   useEffect(() => {
     setLoading(true);
@@ -41,7 +44,7 @@ export function PersonPicker({
       setPeople(list.filter((p) => !exclude.has(p.id)));
       setLoading(false);
     });
-  }, [q, excludePersonIds]);
+  }, [q, excludeKey, excludePersonIds]);
 
   function toggleSelection(id: string) {
     setSelectedIds((prev) => {
@@ -60,10 +63,21 @@ export function PersonPicker({
     setSelectedIds(new Set());
   }
 
-  function handleAddSelected() {
+  async function handleAddSelected() {
     if (!onSelectMultiple || selectedIds.size === 0) return;
-    const toAdd = availablePeople.filter((p) => selectedIds.has(p.id));
-    onSelectMultiple(toAdd.map((p) => ({ ...p, role: roleMap(p.type) })));
+    setSubmitting(true);
+    try {
+      const exclude = new Set(excludePersonIds);
+      const list = await api.people.list();
+      const toAdd = list
+        .filter((p) => !exclude.has(p.id) && selectedIds.has(p.id))
+        .map((p) => ({ ...p, role: roleMap(p.type) }));
+      if (toAdd.length > 0) {
+        onSelectMultiple(toAdd);
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -135,8 +149,8 @@ export function PersonPicker({
         {multiSelect && (
           <button
             type="button"
-            onClick={handleAddSelected}
-            disabled={selectedIds.size === 0}
+            onClick={() => void handleAddSelected()}
+            disabled={selectedIds.size === 0 || submitting}
             className="px-3 py-1.5 rounded-lg bg-stage-accent text-stage-accentFg font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Add {selectedIds.size > 0 ? `${selectedIds.size} ` : ''}selected

@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import { canEdit } from '@/lib/session';
+import {
+  checkboxesFromUserRole,
+  parsePeopleAccessFlags,
+  peopleRoleFromCheckboxes,
+  isSuperadminLinkedRole,
+} from '@/lib/person-linked-role';
+import { composePersonName, splitLegacyName } from '@/lib/person-name';
 
 const PERSON_TYPES = ['musician', 'superstar', 'crew', 'tour_manager', 'productionmanager', 'driver'] as const;
 
@@ -16,6 +23,9 @@ export async function GET(
     where: { id: personId },
     select: {
       id: true,
+      firstName: true,
+      middleName: true,
+      lastName: true,
       name: true,
       type: true,
       birthdate: true,
@@ -32,10 +42,13 @@ export async function GET(
   });
   if (!person) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   const { user, ...rest } = person;
+  const flags = checkboxesFromUserRole(user?.role);
   return NextResponse.json({
     ...rest,
     timezone: person.timezone,
-    isPowerUser: user ? (user.role === 'power_user' || user.role === 'editor' || user.role === 'admin') : false,
+    isBookingAdmin: flags.isBookingAdmin,
+    isPowerUser: flags.isPowerUser,
+    linkedRoleLocked: flags.linkedRoleLocked,
   });
 }
 
@@ -53,9 +66,62 @@ export async function PATCH(
   const existing = await prisma.person.findUnique({ where: { id: personId } });
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   const body = await req.json();
-  const { name, type, birthdate, phone, email, streetName, zipCode, county, timezone, notes, userId, isPowerUser } = body;
-  const data: { name?: string; type?: string; birthdate?: Date | null; phone?: string | null; email?: string | null; streetName?: string | null; zipCode?: string | null; county?: string | null; timezone?: string | null; notes?: string | null; userId?: string | null } = {};
-  if (name !== undefined) data.name = name;
+  const {
+    firstName,
+    middleName,
+    lastName,
+    name: legacyName,
+    type,
+    birthdate,
+    phone,
+    email,
+    streetName,
+    zipCode,
+    county,
+    timezone,
+    notes,
+    userId,
+  } = body;
+  const data: {
+    firstName?: string;
+    middleName?: string | null;
+    lastName?: string;
+    name?: string;
+    type?: string;
+    birthdate?: Date | null;
+    phone?: string | null;
+    email?: string | null;
+    streetName?: string | null;
+    zipCode?: string | null;
+    county?: string | null;
+    timezone?: string | null;
+    notes?: string | null;
+    userId?: string | null;
+  } = {};
+  const useNameParts = 'firstName' in body || 'lastName' in body || 'middleName' in body;
+  if (useNameParts) {
+    const fn = typeof firstName === 'string' ? firstName.trim() : existing.firstName;
+    const ln = typeof lastName === 'string' ? lastName.trim() : existing.lastName;
+    const mn =
+      middleName === undefined
+        ? existing.middleName
+        : typeof middleName === 'string' && middleName.trim()
+          ? middleName.trim()
+          : null;
+    if (!fn) {
+      return NextResponse.json({ error: 'First name is required' }, { status: 400 });
+    }
+    data.firstName = fn;
+    data.middleName = mn;
+    data.lastName = ln;
+    data.name = composePersonName(fn, mn, ln);
+  } else if (legacyName !== undefined) {
+    const sp = splitLegacyName(String(legacyName));
+    data.firstName = sp.firstName;
+    data.middleName = sp.middleName;
+    data.lastName = sp.lastName;
+    data.name = composePersonName(sp.firstName, sp.middleName, sp.lastName);
+  }
   if (type !== undefined) {
     if (!PERSON_TYPES.includes(type)) {
       return NextResponse.json({ error: `type must be one of: ${PERSON_TYPES.join(', ')}` }, { status: 400 });
@@ -72,26 +138,39 @@ export async function PATCH(
   if (notes !== undefined) data.notes = notes || null;
   if (userId !== undefined) data.userId = userId || null;
   try {
-    const person = await prisma.person.update({
-      where: { id: personId },
-      data,
-      include: { user: { select: { id: true, role: true } } },
-    });
-    let resolvedPowerUser = person.user ? (person.user.role === 'power_user' || person.user.role === 'editor' || person.user.role === 'admin') : false;
-    if (isPowerUser !== undefined && person.userId && person.user) {
-      const currentRole = person.user.role;
-      if (currentRole !== 'editor' && currentRole !== 'admin') {
-        await prisma.user.update({
-          where: { id: person.user.id },
-          data: { role: isPowerUser ? 'power_user' : 'viewer' },
-        });
-        resolvedPowerUser = !!isPowerUser;
-      } else {
-        resolvedPowerUser = true;
-      }
+    const includeUser = { user: { select: { id: true, role: true } } } as const;
+    const person =
+      Object.keys(data).length > 0
+        ? await prisma.person.update({
+            where: { id: personId },
+            data,
+            include: includeUser,
+          })
+        : await prisma.person.findUnique({
+            where: { id: personId },
+            include: includeUser,
+          });
+    if (!person) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    let flags = checkboxesFromUserRole(person.user?.role);
+    const shouldPatchRole =
+      ('isBookingAdmin' in body || 'isPowerUser' in body) &&
+      person.userId &&
+      person.user &&
+      !isSuperadminLinkedRole(person.user.role);
+    if (shouldPatchRole && person.user) {
+      const access = parsePeopleAccessFlags(body as Record<string, unknown>);
+      const nextRole = peopleRoleFromCheckboxes(access.isBookingAdmin, access.isPowerUser);
+      await prisma.user.update({
+        where: { id: person.user.id },
+        data: { role: nextRole },
+      });
+      flags = checkboxesFromUserRole(nextRole);
     }
     return NextResponse.json({
       id: person.id,
+      firstName: person.firstName,
+      middleName: person.middleName,
+      lastName: person.lastName,
       name: person.name,
       type: person.type,
       phone: person.phone,
@@ -101,7 +180,9 @@ export async function PATCH(
       county: person.county,
       timezone: person.timezone,
       notes: person.notes,
-      isPowerUser: resolvedPowerUser,
+      isBookingAdmin: flags.isBookingAdmin,
+      isPowerUser: flags.isPowerUser,
+      linkedRoleLocked: flags.linkedRoleLocked,
     });
   } catch (err) {
     const code = (err as { code?: string }).code;

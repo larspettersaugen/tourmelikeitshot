@@ -21,8 +21,16 @@ function assertDatabaseUrlConfigured(): void {
 
 const prismaClientSingleton = () => {
   assertDatabaseUrlConfigured();
+  // Logging every SQL in dev adds large console I/O cost and slows renders noticeably.
+  // Set PRISMA_LOG_QUERIES=1 when you need query text in the terminal.
+  const devLogQueries = process.env.PRISMA_LOG_QUERIES === '1';
   return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log:
+      process.env.NODE_ENV === 'development'
+        ? devLogQueries
+          ? ['query', 'error', 'warn']
+          : ['error', 'warn']
+        : ['error'],
   });
 };
 

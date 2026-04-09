@@ -29,6 +29,7 @@ export async function updateSession(request: NextRequest) {
 
   const isAuthRoute =
     request.nextUrl.pathname === '/login' ||
+    request.nextUrl.pathname === '/signup' ||
     request.nextUrl.pathname.startsWith('/join') ||
     request.nextUrl.pathname.startsWith('/invite') ||
     request.nextUrl.pathname.startsWith('/forgot-password') ||

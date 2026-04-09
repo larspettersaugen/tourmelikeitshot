@@ -11,17 +11,22 @@ type VenueContact = {
   phone: string | null;
   email: string | null;
   notes: string | null;
+  venueId: string | null;
+  venue: { id: string; name: string; city: string } | null;
 };
 
 export function VenueContactPicker({
   onSelect,
   onCancel,
   variant = 'contact',
+  /** When set, only list contacts tied to this saved venue */
+  filterVenueId,
 }: {
   onSelect: (contact: VenueContact) => void;
   onCancel: () => void;
   /** Same picker; title differs for date contacts vs promoter */
   variant?: 'contact' | 'promoter';
+  filterVenueId?: string;
 }) {
   const [contacts, setContacts] = useState<VenueContact[]>([]);
   const [q, setQ] = useState('');
@@ -30,7 +35,7 @@ export function VenueContactPicker({
   useEffect(() => {
     setLoading(true);
     api.venueContacts
-      .list({ q: q || undefined })
+      .list({ q: q || undefined, venueId: filterVenueId || undefined })
       .then((list) => {
         setContacts(list);
       })
@@ -40,14 +45,16 @@ export function VenueContactPicker({
       .finally(() => {
         setLoading(false);
       });
-  }, [q]);
+  }, [q, filterVenueId]);
 
   return (
     <div className="p-4 border-t border-stage-border space-y-3">
       <p className="text-sm font-medium text-white">
         {variant === 'promoter' ? 'Choose promoter from venue contacts' : 'Choose from venue contacts'}
       </p>
-      <p className="text-xs text-stage-muted">Search by name</p>
+      <p className="text-xs text-stage-muted">
+        {filterVenueId ? 'Contacts linked to this venue. Search by name.' : 'Search by name'}
+      </p>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stage-muted" />
         <input

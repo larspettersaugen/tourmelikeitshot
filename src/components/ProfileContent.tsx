@@ -134,7 +134,7 @@ export function ProfileContent({
 
   if (profile && mode === 'view') {
     return (
-      <div className="rounded-xl bg-stage-card border border-stage-border overflow-hidden">
+      <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 overflow-hidden ring-1 ring-white/[0.04]">
         <div className="p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -188,7 +188,7 @@ export function ProfileContent({
 
   if (profile && mode === 'edit') {
     return (
-      <form onSubmit={handleUpdate} className="rounded-xl bg-stage-card border border-stage-border p-6 space-y-4">
+      <form onSubmit={handleUpdate} className="rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04] p-6 space-y-4">
         <input
           type="text"
           value={name}
@@ -223,7 +223,7 @@ export function ProfileContent({
 
   if (mode === 'link') {
     return (
-      <div className="rounded-xl bg-stage-card border border-stage-border p-6 space-y-4">
+      <div className="rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04] p-6 space-y-4">
         <p className="text-sm text-stage-muted">Find your profile in the people database and link it to your account.</p>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stage-muted" />
@@ -289,7 +289,7 @@ export function ProfileContent({
         </button>
       </div>
 
-      <form onSubmit={handleCreate} className="rounded-xl bg-stage-card border border-stage-border p-6 space-y-4">
+      <form onSubmit={handleCreate} className="rounded-2xl bg-stage-card/95 border border-stage-border/90 ring-1 ring-white/[0.04] p-6 space-y-4">
         <input
           type="text"
           value={name}
