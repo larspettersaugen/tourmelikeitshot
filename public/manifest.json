@@ -3,11 +3,29 @@
   "short_name": "Tour Me Hot",
   "description": "Schedules, flights, transport and contacts for touring crew and bands",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0f0f12",
   "theme_color": "#0f0f12",
   "orientation": "portrait-primary",
   "icons": [
-    { "src": "/icon", "sizes": "48x48", "type": "image/png", "purpose": "any" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

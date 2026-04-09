@@ -20,6 +20,7 @@
     "db:assign-marius-pm": "node prisma/assign-marius-productionmanager.cjs",
     "db:migrate-projects": "node prisma/migrate-to-projects.cjs",
     "db:import-sqlite": "tsx scripts/import-sqlite-to-neon.ts",
+    "pwa:icons": "node scripts/generate-pwa-icons.mjs",
     "stitch:fetch": "node scripts/fetch-stitch-screen.mjs",
     "db:set-password": "node scripts/set-supabase-user-password.mjs",
     "postinstall": "prisma generate",
@@ -57,6 +58,7 @@
     "lint-staged": "^16.3.1",
     "nodemon": "^3.1.9",
     "postcss": "^8.4.49",
+    "sharp": "^0.34.5",
     "tailwindcss": "^3.4.15",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"

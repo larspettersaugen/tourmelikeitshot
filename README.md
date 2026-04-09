@@ -123,4 +123,10 @@ Use **one** PostgreSQL database. **Neon** is the recommended default (free tier,
 
 ## PWA
 
-Set `ENABLE_PWA=true` when building to enable. PWA is off by default due to build conflicts. Add `public/icon-192.png` and `public/icon-512.png` (and optionally `public/favicon.ico`) for install icons. Install from the browser “Add to Home Screen” (or “Install app”) when visiting the deployed app.
+Production builds enable the service worker and install manifest by default (set `ENABLE_PWA=false` to turn off). In development it stays off unless you set `ENABLE_PWA=true` (can hit tooling edge cases on some machines).
+
+Icons live in `public/` as `icon-192.png`, `icon-512.png`, and `apple-touch-icon.png`. Regenerate them after changing the in-app icon motif with:
+
+`npm run pwa:icons`
+
+Install from the mobile browser: **Share → Add to Home Screen** (Safari) or **Install app** (Chrome). Use **HTTPS** in production (required for install criteria).

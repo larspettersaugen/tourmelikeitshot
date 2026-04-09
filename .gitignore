@@ -8,6 +8,15 @@ prisma/dev.db-journal
 # Next.js — never commit; tracked .next breaks dev (missing CSS / wrong chunks)
 .next/
 out/
+
+# PWA — generated on production build; do not commit stale bundles
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map
+public/worker-*.js
+public/worker-*.js.map
+public/fallback-*.js
 .vercel
 .env*.local
 tsconfig.tsbuildinfo

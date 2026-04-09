@@ -31,5 +31,10 @@ const nextConfig = {
   },
 };
 
-// PWA disabled by default - set ENABLE_PWA=true to enable (can cause terser issues on some systems)
-module.exports = process.env.ENABLE_PWA === 'true' ? withPWA(nextConfig) : nextConfig;
+// PWA: on in production builds unless ENABLE_PWA=false; in dev, set ENABLE_PWA=true to test.
+const pwaExplicitOn = process.env.ENABLE_PWA === 'true';
+const pwaExplicitOff = process.env.ENABLE_PWA === 'false';
+const pwaProdDefault = process.env.NODE_ENV === 'production' && !pwaExplicitOff;
+const enablePwa = pwaExplicitOn || pwaProdDefault;
+
+module.exports = enablePwa ? withPWA(nextConfig) : nextConfig;
