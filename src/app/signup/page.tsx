@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { navigateAfterClientAuth } from '@/lib/navigate-after-client-auth';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 function SignupForm() {
@@ -77,8 +78,7 @@ function SignupForm() {
         password,
       });
       if (signInError) throw signInError;
-      router.push('/dashboard');
-      router.refresh();
+      navigateAfterClientAuth('/dashboard');
     } catch {
       setError('Account created but sign-in failed. Try signing in manually.');
       setLoading(false);

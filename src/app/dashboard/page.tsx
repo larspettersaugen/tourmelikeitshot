@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { Prisma } from '@prisma/client';
 import { getCachedSession } from '@/lib/cached-session';
 import { prisma } from '@/lib/prisma';
 import { ChevronRight, Calendar, FolderOpen, MapPin } from 'lucide-react';
@@ -7,6 +8,63 @@ import { format } from 'date-fns';
 import { hasFullTourCatalogAccess, getViewerAssignedTourIds } from '@/lib/viewer-access';
 import { tourDateDisplayName } from '@/lib/tour-date-display';
 import { getTourDateOpenDateIdsForUser, canOpenDateId } from '@/lib/tour-date-access';
+import { isTourDateOnLocalCalendarDay } from '@/lib/tour-date-upcoming';
+
+type DashboardShowDate = Prisma.TourDateGetPayload<{
+  include: {
+    tour: { select: { id: true; name: true; project: { select: { id: true; name: true } } } };
+  };
+}>;
+
+function DashboardShowListItem({
+  d,
+  dateAccessByTour,
+}: {
+  d: DashboardShowDate;
+  dateAccessByTour: Map<string, Awaited<ReturnType<typeof getTourDateOpenDateIdsForUser>>>;
+}) {
+  const acc = dateAccessByTour.get(d.tourId);
+  const canOpen = acc ? canOpenDateId(acc, d.id) : false;
+  const inner = (
+    <>
+      <div>
+        <div className="flex items-center gap-2">
+          <p className="font-medium text-white">
+            {tourDateDisplayName({
+              name: d.name,
+              venueName: d.venueName,
+              city: d.city,
+            })}
+          </p>
+          <ShowStatusBadge status={d.status} />
+        </div>
+        <p className="text-sm text-stage-muted">
+          {format(new Date(d.date), 'EEEE, MMM d')} · {d.tour.project?.name ?? d.tour.name} · {d.tour.name}
+        </p>
+      </div>
+      <span className="text-stage-muted shrink-0">{canOpen ? <ChevronRight className="h-5 w-5" /> : '—'}</span>
+    </>
+  );
+  return (
+    <li>
+      {canOpen ? (
+        <Link
+          href={`/dashboard/tours/${d.tourId}/dates/${d.id}`}
+          className="flex items-center justify-between p-4 rounded-lg bg-stage-card border border-stage-border hover:border-stage-neonCyan/40 transition"
+        >
+          {inner}
+        </Link>
+      ) : (
+        <div
+          className="flex items-center justify-between p-4 rounded-lg bg-stage-card border border-stage-border opacity-80 cursor-not-allowed"
+          title="You are not assigned to this date. Open the tour to see it on the calendar."
+        >
+          {inner}
+        </div>
+      )}
+    </li>
+  );
+}
 
 export default async function DashboardPage() {
   const session = await getCachedSession();
@@ -17,6 +75,8 @@ export default async function DashboardPage() {
     : [];
 
   const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
   const tourWhere = fullCatalog
     ? {
         projectId: { not: null },
@@ -28,7 +88,15 @@ export default async function DashboardPage() {
       }
     : { id: { in: viewerTourIds ?? [] } };
 
-  const [allProjects, tours, upcomingDates] = await Promise.all([
+  const showListWhere = {
+    tourId: fullCatalog ? undefined : { in: viewerTourIds ?? [] },
+    OR: [
+      { endDate: { gte: startOfToday } },
+      { AND: [{ endDate: null }, { date: { gte: startOfToday } }] },
+    ],
+  };
+
+  const [allProjects, tours, showDatesCandidates] = await Promise.all([
     prisma.project.findMany({
       orderBy: { name: 'asc' },
       include: { _count: { select: { tours: true } }, tours: { select: { id: true } } },
@@ -47,9 +115,9 @@ export default async function DashboardPage() {
       },
     }),
     prisma.tourDate.findMany({
-      where: { date: { gte: new Date() }, tourId: fullCatalog ? undefined : { in: viewerTourIds ?? [] } },
+      where: showListWhere,
       orderBy: { date: 'asc' },
-      take: 4,
+      take: 40,
       include: {
         tour: {
           select: { id: true, name: true, project: { select: { id: true, name: true } } },
@@ -57,6 +125,9 @@ export default async function DashboardPage() {
       },
     }),
   ]);
+
+  const todaysDates = showDatesCandidates.filter((d) => isTourDateOnLocalCalendarDay(d));
+  const upcomingDates = showDatesCandidates.filter((d) => !isTourDateOnLocalCalendarDay(d)).slice(0, 4);
 
   const projects = fullCatalog
     ? allProjects
@@ -67,7 +138,7 @@ export default async function DashboardPage() {
     Awaited<ReturnType<typeof getTourDateOpenDateIdsForUser>>
   >();
   if (session?.user?.id) {
-    for (const d of upcomingDates) {
+    for (const d of [...todaysDates, ...upcomingDates]) {
       if (!dateAccessByTour.has(d.tourId)) {
         dateAccessByTour.set(d.tourId, await getTourDateOpenDateIdsForUser(session.user.id, role, d.tourId));
       }
@@ -107,6 +178,20 @@ export default async function DashboardPage() {
         </section>
       )}
 
+      {/* Today's shows */}
+      {todaysDates.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2 mb-3">
+            <Calendar className="h-4 w-4" /> Today&apos;s shows
+          </h2>
+          <ul className="space-y-2">
+            {todaysDates.map((d) => (
+              <DashboardShowListItem key={d.id} d={d} dateAccessByTour={dateAccessByTour} />
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Upcoming dates */}
       {upcomingDates.length > 0 && (
         <section className="mb-8">
@@ -114,49 +199,9 @@ export default async function DashboardPage() {
             <Calendar className="h-4 w-4" /> Upcoming shows
           </h2>
           <ul className="space-y-2">
-            {upcomingDates.map((d) => {
-              const acc = dateAccessByTour.get(d.tourId);
-              const canOpen = acc ? canOpenDateId(acc, d.id) : false;
-              const inner = (
-                <>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-white">
-                        {tourDateDisplayName({
-                          name: d.name,
-                          venueName: d.venueName,
-                          city: d.city,
-                        })}
-                      </p>
-                      <ShowStatusBadge status={d.status} />
-                    </div>
-                    <p className="text-sm text-stage-muted">
-                      {format(new Date(d.date), 'EEEE, MMM d')} · {d.tour.project?.name ?? d.tour.name} · {d.tour.name}
-                    </p>
-                  </div>
-                  <span className="text-stage-muted shrink-0">{canOpen ? <ChevronRight className="h-5 w-5" /> : '—'}</span>
-                </>
-              );
-              return (
-                <li key={d.id}>
-                  {canOpen ? (
-                    <Link
-                      href={`/dashboard/tours/${d.tourId}/dates/${d.id}`}
-                      className="flex items-center justify-between p-4 rounded-lg bg-stage-card border border-stage-border hover:border-stage-neonCyan/40 transition"
-                    >
-                      {inner}
-                    </Link>
-                  ) : (
-                    <div
-                      className="flex items-center justify-between p-4 rounded-lg bg-stage-card border border-stage-border opacity-80 cursor-not-allowed"
-                      title="You are not assigned to this date. Open the tour to see it on the calendar."
-                    >
-                      {inner}
-                    </div>
-                  )}
-                </li>
-              );
-            })}
+            {upcomingDates.map((d) => (
+              <DashboardShowListItem key={d.id} d={d} dateAccessByTour={dateAccessByTour} />
+            ))}
           </ul>
         </section>
       )}

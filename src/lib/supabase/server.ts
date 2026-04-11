@@ -1,13 +1,17 @@
 import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { supabaseCookieOptionsFromForwardedHeaders } from '@/lib/supabase/cookie-options';
 
 export async function createClient() {
   const cookieStore = await cookies();
+  const h = await headers();
+  const cookieOptions = supabaseCookieOptionsFromForwardedHeaders((name) => h.get(name));
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions,
       cookies: {
         getAll() {
           return cookieStore.getAll();
@@ -30,11 +34,14 @@ export async function createClient() {
 /** Server client with service_role key -- bypasses RLS. Use only in server-side API routes. */
 export async function createServiceClient() {
   const cookieStore = await cookies();
+  const h = await headers();
+  const cookieOptions = supabaseCookieOptionsFromForwardedHeaders((name) => h.get(name));
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
+      cookieOptions,
       cookies: {
         getAll() {
           return cookieStore.getAll();

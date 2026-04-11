@@ -9,7 +9,7 @@ import { cleanupOrphanedTravelGroupMembers } from '@/lib/traveling-group';
 import { TravelingGroupSection } from '@/components/TravelingGroupSection';
 import { TourDateCard } from '@/components/TourDateCard';
 import { ArchiveTourDatesSection, type ArchiveTourDatePayload } from '@/components/ArchiveTourDatesSection';
-import { isTourDateUpcomingOrToday } from '@/lib/tour-date-upcoming';
+import { isTourDateOnLocalCalendarDay, isTourDateUpcomingOrToday } from '@/lib/tour-date-upcoming';
 import { getTourDateOpenDateIdsForUser, canOpenDateId } from '@/lib/tour-date-access';
 
 type TourDateRow = {
@@ -67,6 +67,8 @@ function DatesSections({
 
   const upcoming = dates.filter((d) => isTourDateUpcomingOrToday({ date: d.date, endDate: d.endDate }));
   const archived = dates.filter((d) => !isTourDateUpcomingOrToday({ date: d.date, endDate: d.endDate }));
+  const todaysShows = upcoming.filter((d) => isTourDateOnLocalCalendarDay({ date: d.date, endDate: d.endDate }));
+  const upcomingDates = upcoming.filter((d) => !isTourDateOnLocalCalendarDay({ date: d.date, endDate: d.endDate }));
 
   return (
     <>
@@ -78,13 +80,30 @@ function DatesSections({
           <Plus className="h-4 w-4" /> Add date
         </Link>
       )}
-      {upcoming.length > 0 && (
+      {todaysShows.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2 mb-3">
+            <Calendar className="h-4 w-4" /> Today&apos;s shows
+          </h2>
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {todaysShows.map((date) => (
+              <TourDateCard
+                key={date.id}
+                tourId={tourId}
+                date={date}
+                canOpenDetail={canOpenDateId(dateOpenAccess, date.id)}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
+      {upcomingDates.length > 0 && (
         <section className="mb-8">
           <h2 className="text-xs font-bold uppercase tracking-widest text-stage-neonCyan flex items-center gap-2 mb-3">
             <Calendar className="h-4 w-4" /> Dates
           </h2>
           <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {upcoming.map((date) => (
+            {upcomingDates.map((date) => (
               <TourDateCard
                 key={date.id}
                 tourId={tourId}

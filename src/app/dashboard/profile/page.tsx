@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { ProfileContent } from '@/components/ProfileContent';
+import { GoogleAccountLink } from '@/components/GoogleAccountLink';
 
 export default async function ProfilePage() {
   const session = await getCachedSession();
@@ -26,6 +27,9 @@ export default async function ProfilePage() {
         initialProfile={profile}
         user={{ name: session.user.name ?? undefined, email: session.user.email ?? undefined }}
       />
+      <div className="mt-6">
+        <GoogleAccountLink />
+      </div>
     </div>
   );
 }

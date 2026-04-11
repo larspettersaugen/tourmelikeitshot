@@ -2,8 +2,9 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { navigateAfterClientAuth } from '@/lib/navigate-after-client-auth';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 function LoginForm() {
@@ -13,7 +14,6 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [hasGoogle, setHasGoogle] = useState(false);
-  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const fromInvite = searchParams.get('fromInvite') === '1';
@@ -36,28 +36,55 @@ function LoginForm() {
   async function handleGoogleSignIn() {
     setError('');
     setGoogleLoading(true);
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/api/auth/callback` },
-    });
-    setGoogleLoading(false);
+    try {
+      await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/api/auth/callback` },
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Could not start Google sign-in.',
+      );
+    } finally {
+      setGoogleLoading(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    setLoading(false);
-    if (authError) {
-      setError('Invalid email or password');
-      return;
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (authError) {
+        const msg = (authError.message || '').toLowerCase();
+        setError(
+          msg.includes('invalid login') || msg.includes('invalid credentials')
+            ? 'Invalid email or password'
+            : authError.message || 'Sign-in failed',
+        );
+        return;
+      }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError(
+          'Sign-in succeeded but the session did not start in this browser (often cookie or tunnel related). Try Safari/Chrome settings or another network.',
+        );
+        return;
+      }
+      navigateAfterClientAuth(callbackUrl);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Could not reach the sign-in service. Check your connection.',
+      );
+    } finally {
+      setLoading(false);
     }
-    router.push(callbackUrl);
-    router.refresh();
   }
 
   return (

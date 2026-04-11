@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { navigateAfterClientAuth } from '@/lib/navigate-after-client-auth';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
@@ -16,7 +17,6 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 function BetaJoinForm() {
-  const router = useRouter();
   const params = useParams();
   const token = params?.token as string;
 
@@ -89,8 +89,7 @@ function BetaJoinForm() {
         setSubmitting(false);
         return;
       }
-      router.push('/dashboard');
-      router.refresh();
+      navigateAfterClientAuth('/dashboard');
     } catch {
       setError('Something went wrong');
       setSubmitting(false);

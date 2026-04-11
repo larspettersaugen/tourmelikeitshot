@@ -3,6 +3,7 @@ import { getCachedSession } from '@/lib/cached-session';
 import { DashboardLayoutClient } from '@/components/DashboardLayoutClient';
 import { MobileDayNav } from '@/components/MobileDayNav';
 import { TourDatesSidebarProvider } from '@/contexts/TourDatesSidebarContext';
+import { AiChat } from '@/components/AiChat';
 
 /** getServerSession uses headers(); static prerender fails on Vercel (dynamic-server-error). */
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </TourDatesSidebarProvider>
       </div>
       <MobileDayNav />
+      <AiChat role={session.user.role} userName={session.user.name} />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { navigateAfterClientAuth } from '@/lib/navigate-after-client-auth';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 function InviteAcceptForm() {
@@ -65,8 +66,7 @@ function InviteAcceptForm() {
       const supabase = createClient();
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) throw signInError;
-      router.push('/dashboard');
-      router.refresh();
+      navigateAfterClientAuth('/dashboard');
     } catch {
       setError('Something went wrong');
       setLoading(false);
